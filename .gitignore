@@ -6,6 +6,7 @@ build/
 out/
 .expo/
 *.jsbundle
+pnpm-lock.yaml
 
 # Environment
 .env

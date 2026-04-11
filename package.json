@@ -5,8 +5,13 @@
   "license": "ISC",
   "author": "",
   "type": "commonjs",
+  "packageManager": "pnpm@10.10.0",
   "main": "index.js",
   "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean",
     "test": "echo \"Error: no test specified\" && exit 1",
     "prepare": "husky"
   },
