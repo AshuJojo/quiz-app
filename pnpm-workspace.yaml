@@ -1,0 +1,5 @@
+packages:
+  - "web/backend"
+  - "web/frontend/admin"
+  - "web/frontend/user"
+  - "mobile"
