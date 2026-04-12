@@ -4,7 +4,7 @@ This skill defines the standards, modularity, and code organization principles t
 
 As an AI agent, you must strictly follow this architecture and pattern when scaffolding new API features. The goal is to enforce Separation of Concerns (SoC), making the backend testable, scalable, and easy to maintain.
 
-## Related Documentation 
+## Related Documentation
 
 To fully understand the organization, review the sub-documents in the following order:
 
@@ -18,6 +18,8 @@ To fully understand the organization, review the sub-documents in the following 
    How validation, global error catching, and authentication are uniformly implemented.
 
 ## Core Philosophical Principles
+
 - **Thin Controllers, Fat Services**: Controllers only handle HTTP logic (req/res, status codes). All complex logic and database interactions must be passed down to Services.
 - **Domain-Driven Design (Lite)**: Group related elements by feature (e.g., `categories/`, `papers/`) rather than by technical role (don't dump all controllers in one giant folder if the app becomes large, although a simple MVC structure is fine for MVP until it scales).
 - **Fail Fast, Handle Globally**: Unhandled promises/errors in controllers should be caught and deferred to a global Error Handling Express Middleware.
+- **Always use pnpm**: Use `pnpm` exclusively for all package management tasks, including installing dependencies and running scripts. Never use `npm`.
