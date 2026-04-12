@@ -12,7 +12,7 @@ exports.validateRequest = (schema) => {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        const issues = error.issues || error.errors || [];
+        const issues = error.issues || [];
         const message = issues[0]?.message || 'Validation failed';
         res.status(400).json({
           success: false,
