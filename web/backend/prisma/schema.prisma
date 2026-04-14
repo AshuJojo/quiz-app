@@ -14,3 +14,41 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+model Category {
+  id        String     @id @default(uuid())
+  name      String
+  slug      String     @unique
+  icon      String?
+  parentId  String?
+  parent    Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryToCategory")
+  papers    Paper[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Paper {
+  id             String     @id @default(uuid())
+  title          String
+  categoryId     String
+  category       Category   @relation(fields: [categoryId], references: [id])
+  questions      Question[]
+  totalQuestions Int
+  duration       Int
+  year           Int?
+  isPublished    Boolean    @default(false)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
+model Question {
+  id                  String   @id @default(uuid())
+  paperId             String
+  paper               Paper    @relation(fields: [paperId], references: [id])
+  questionText        String
+  options             String[] // Array of 4 options
+  correctOptionIndex  Int
+  explanation         String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
