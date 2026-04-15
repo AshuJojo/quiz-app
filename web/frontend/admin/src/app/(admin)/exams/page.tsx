@@ -4,7 +4,7 @@ import { ExamForm } from '@/components/features/exams/components/exam-form';
 import { ExamTree } from '@/components/features/exams/components/exam-tree';
 import { cn } from '@/lib/utils/cn';
 import { examService } from '@/services/exam-service';
-import { Exam } from '@/types/exam';
+import { CreateExamInput, Exam, UpdateExamInput } from '@/types/exam';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronDown, FolderTree, Plus, PlusCircle, Search } from 'lucide-react';
 import { useState } from 'react';
@@ -28,7 +28,7 @@ export default function ExamsPage() {
 
   // Mutations
   const createMutation = useMutation({
-    mutationFn: (data: Partial<Exam>) => examService.createExam(data),
+    mutationFn: (data: CreateExamInput) => examService.createExam(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exams'] });
       handleCloseForm();
@@ -36,7 +36,7 @@ export default function ExamsPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Exam> }) =>
+    mutationFn: ({ id, data }: { id: string; data: UpdateExamInput }) =>
       examService.updateExam(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exams'] });
@@ -68,11 +68,14 @@ export default function ExamsPage() {
     setSelectedParentId(null);
   };
 
-  const handleSubmit = async (data: Partial<Exam>) => {
+  const handleSubmit = async (data: any) => {
     if (editingExam?.id) {
-      await updateMutation.mutateAsync({ id: editingExam.id, data });
+      await updateMutation.mutateAsync({ id: editingExam.id, data: data as UpdateExamInput });
     } else {
-      await createMutation.mutateAsync({ ...data, parentId: selectedParentId });
+      await createMutation.mutateAsync({
+        name: data.name,
+        parentId: selectedParentId,
+      } as CreateExamInput);
     }
   };
 

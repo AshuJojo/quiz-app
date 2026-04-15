@@ -51,7 +51,7 @@ export function ExamTree({
 
   return (
     <div className="space-y-1">
-      {exams.map((exam) => (
+      {exams.map((exam: any) => (
         <ExamItem
           key={exam.id}
           exam={exam}
