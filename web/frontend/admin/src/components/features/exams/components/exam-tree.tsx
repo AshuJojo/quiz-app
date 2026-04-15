@@ -9,6 +9,8 @@ import { Loader2 } from 'lucide-react';
 interface ExamTreeProps {
   parentId?: string | null;
   level?: number;
+  page?: number;
+  limit?: number;
   onEdit: (cat: Exam) => void;
   onDelete: (id: string) => void;
   onAddChild: (parentId: string) => void;
@@ -17,13 +19,19 @@ interface ExamTreeProps {
 export function ExamTree({
   parentId = null,
   level = 0,
+  page = 1,
+  limit = 10,
   onEdit,
   onDelete,
   onAddChild,
 }: ExamTreeProps) {
+  // If we are root, we paginate. If we are sub-exam, we fetch all.
+  const queryLimit = parentId === null ? limit : 'all';
+  const queryPage = parentId === null ? page : 1;
+
   const { data, isLoading, error } = useQuery({
-    queryKey: ['exams', parentId],
-    queryFn: () => examService.getExams(parentId),
+    queryKey: ['exams', parentId, queryPage, queryLimit],
+    queryFn: () => examService.getExams(parentId, queryPage, queryLimit),
   });
 
   if (isLoading) {

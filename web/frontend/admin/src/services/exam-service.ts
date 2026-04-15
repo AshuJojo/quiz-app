@@ -4,15 +4,25 @@ import axios from 'axios';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export const examService = {
-  getExams: async (parentId: string | null = null) => {
+  getExams: async (
+    parentId: string | null = null,
+    page: number = 1,
+    limit: number | 'all' = 10
+  ) => {
     const response = await axios.get(`${API_URL}/exams`, {
-      params: { parentId: parentId ?? 'null' },
+      params: {
+        parentId: parentId ?? 'null',
+        page,
+        limit,
+      },
     });
     return response.data;
   },
 
-  getAllExams: async () => {
-    const response = await axios.get(`${API_URL}/exams`);
+  getAllExams: async (page?: number, limit?: number) => {
+    const response = await axios.get(`${API_URL}/exams`, {
+      params: { page, limit },
+    });
     return response.data;
   },
 

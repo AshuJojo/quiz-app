@@ -10,7 +10,7 @@ const slugify = (text) => {
     .replace(/\-\-+/g, '-'); // Replace multiple - with single -
 };
 
-exports.getExams = async (parentId) => {
+exports.getExams = async (parentId, page, limit) => {
   const where = {};
 
   // If parentId is provided (even as "null" string), we filter.
@@ -23,20 +23,38 @@ exports.getExams = async (parentId) => {
     }
   }
 
-  return await prisma.exam.findMany({
-    where,
-    include: {
-      _count: {
-        select: {
-          children: true,
-          papers: true,
+  // Handle pagination
+  const p = parseInt(page) || 1;
+  const isAll = limit === 'all' || limit === undefined;
+  const l = isAll ? undefined : parseInt(limit) || 10;
+  const skip = isAll ? undefined : (p - 1) * l;
+
+  const [data, total] = await Promise.all([
+    prisma.exam.findMany({
+      where,
+      include: {
+        _count: {
+          select: {
+            children: true,
+            papers: true,
+          },
         },
       },
-    },
-    orderBy: {
-      name: 'asc',
-    },
-  });
+      orderBy: {
+        name: 'asc',
+      },
+      skip,
+      take: l,
+    }),
+    prisma.exam.count({ where }),
+  ]);
+
+  return {
+    data,
+    total,
+    page: isAll ? 1 : p,
+    limit: isAll ? total : l,
+  };
 };
 
 exports.getExamById = async (id) => {
