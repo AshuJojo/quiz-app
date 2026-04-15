@@ -6,7 +6,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 export const examService = {
   getExams: async (parentId: string | null = null) => {
     const response = await axios.get(`${API_URL}/exams`, {
-      params: { parentId },
+      params: { parentId: parentId ?? 'null' },
     });
     return response.data;
   },
