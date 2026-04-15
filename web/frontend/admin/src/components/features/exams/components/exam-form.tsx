@@ -2,8 +2,9 @@
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Exam, ExamSchema } from '@/types/exam';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, PlusCircle } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
 interface ExamFormProps {
@@ -19,60 +20,84 @@ export function ExamForm({ initialData, parentId, onSubmit, onClose, isLoading }
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<Exam>({
+  } = useForm<z.infer<typeof ExamSchema>>({
     resolver: zodResolver(ExamSchema),
     defaultValues: {
       name: initialData?.name || '',
       parentId: initialData?.parentId || parentId || null,
-    } as any,
+    },
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between p-6 border-b border-zinc-100 dark:border-zinc-800">
-          <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-            {initialData?.id ? 'Edit Exam' : 'New Exam'}
-          </h2>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      {/* Premium Backdrop with high-performance blur */}
+      <div
+        className="absolute inset-0 bg-on-background/20 backdrop-blur-md animate-in fade-in duration-500"
+        onClick={onClose}
+      />
+
+      {/* Modal Container with Glassmorphism */}
+      <div className="relative w-full max-w-lg bg-surface-container-lowest/90 backdrop-blur-2xl rounded-[2rem] shadow-2xl border border-white/40 overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 shadow-primary/5">
+        {/* Decorative background element */}
+        <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex items-center justify-between px-8 py-4 border-b border-outline-variant/30 relative">
+          <div className="flex items-center gap-4">
+            <div>
+              <h2 className="text-3xl font-black tracking-tight text-on-background font-display leading-tight">
+                {initialData?.id ? 'Edit Exam' : 'New Exam'}
+              </h2>
+            </div>
+          </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-50"
+            className="p-3 rounded-2xl hover:bg-surface-container transition-all text-on-surface-variant hover:text-on-background active:scale-90"
           >
-            <X size={20} />
+            <X size={24} strokeWidth={2.5} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-5">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-8 space-y-4 relative">
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-black text-on-surface uppercase tracking-widest ml-1">
               Exam Name
             </label>
-            <input
-              {...register('name')}
-              placeholder="e.g. SSC, CGL, Mathematics"
-              className={cn(
-                'w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 transition-all outline-none',
-                errors.name && 'border-red-500 focus:ring-red-500'
-              )}
-            />
-            {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name.message}</p>}
+            <div className="relative group">
+              <input
+                {...register('name')}
+                placeholder="e.g. UPSC, JEE, Civil Engineering"
+                className={cn(
+                  'w-full px-6 py-4 rounded-2xl border-2 border-outline-variant/30 bg-white/50 text-on-background font-bold placeholder:text-on-surface-variant/40 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none text-lg',
+                  errors.name && 'border-red-500/50 focus:border-red-500 focus:ring-red-500/10'
+                )}
+              />
+            </div>
+            {errors.name && (
+              <div className="flex items-center gap-2 mt-2 ml-1 text-red-600 animate-in slide-in-from-left-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-600" />
+                <p className="text-xs font-black uppercase tracking-wider">{errors.name.message}</p>
+              </div>
+            )}
           </div>
 
-          <div className="flex items-center justify-end gap-3 mt-8">
+          <div className="flex items-center justify-end gap-3 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors"
+              className="px-8 py-4 text-sm font-black text-on-surface-variant uppercase tracking-widest hover:bg-surface-container rounded-2xl transition-all active:scale-95"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="px-6 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-10 py-4 text-sm font-black text-white bg-primary hover:bg-primary/90 rounded-2xl transition-all shadow-xl shadow-primary/20 hover:shadow-primary/30 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 min-w-[180px] uppercase tracking-widest"
             >
-              {isLoading && <Loader2 size={16} className="animate-spin" />}
-              {initialData?.id ? 'Save Changes' : 'Create Exam'}
+              {isLoading ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <>{initialData?.id ? 'Update Exam' : 'Create Exam'}</>
+              )}
             </button>
           </div>
         </form>
