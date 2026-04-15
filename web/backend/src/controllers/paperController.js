@@ -2,8 +2,8 @@ const paperService = require('../services/paperService');
 
 exports.index = async (req, res, next) => {
   try {
-    const { categoryId } = req.query;
-    const papers = await paperService.getPapers(categoryId);
+    const { examId } = req.query;
+    const papers = await paperService.getPapers(examId);
     res.status(200).json({
       success: true,
       count: papers.length,
@@ -40,7 +40,7 @@ exports.store = async (req, res, next) => {
       data: paper,
     });
   } catch (error) {
-    if (error.message.includes('Category not found')) {
+    if (error.message.includes('Exam not found')) {
       return res.status(400).json({
         success: false,
         message: error.message,
@@ -64,7 +64,7 @@ exports.update = async (req, res, next) => {
         message: error.message,
       });
     }
-    if (error.message.includes('Category not found')) {
+    if (error.message.includes('Exam not found')) {
       return res.status(400).json({
         success: false,
         message: error.message,

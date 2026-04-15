@@ -1,67 +1,67 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { categoryService } from '@/services/category-service';
-import { CategoryItem } from './category-item';
-import { Category } from '@/types/category';
+import { examService } from '@/services/exam-service';
+import { ExamItem } from './exam-item';
+import { Exam } from '@/types/exam';
 import { Loader2 } from 'lucide-react';
 
-interface CategoryTreeProps {
+interface ExamTreeProps {
   parentId?: string | null;
   level?: number;
-  onEdit: (cat: Category) => void;
+  onEdit: (cat: Exam) => void;
   onDelete: (id: string) => void;
   onAddChild: (parentId: string) => void;
 }
 
-export function CategoryTree({
+export function ExamTree({
   parentId = null,
   level = 0,
   onEdit,
   onDelete,
   onAddChild,
-}: CategoryTreeProps) {
+}: ExamTreeProps) {
   const { data, isLoading, error } = useQuery({
-    queryKey: ['categories', parentId],
-    queryFn: () => categoryService.getCategories(parentId),
+    queryKey: ['exams', parentId],
+    queryFn: () => examService.getExams(parentId),
   });
 
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 py-2 px-4 ml-8 animate-pulse">
         <Loader2 size={16} className="animate-spin text-zinc-400" />
-        <span className="text-sm text-zinc-400">Loading sub-categories...</span>
+        <span className="text-sm text-zinc-400">Loading sub-exams...</span>
       </div>
     );
   }
 
   if (error) {
-    return <div className="text-red-500 text-xs ml-8 py-2">Failed to load categories</div>;
+    return <div className="text-red-500 text-xs ml-8 py-2">Failed to load exams</div>;
   }
 
-  const categories = Array.isArray(data?.data) ? data.data : [];
+  const exams = Array.isArray(data?.data) ? data.data : [];
 
   return (
     <div className="space-y-1">
-      {categories.map((category) => (
-        <CategoryItem
-          key={category.id}
-          category={category}
+      {exams.map((exam) => (
+        <ExamItem
+          key={exam.id}
+          exam={exam}
           level={level}
           onEdit={onEdit}
           onDelete={onDelete}
           onAddChild={onAddChild}
         >
-          {category._count?.children ? (
-            <CategoryTree
-              parentId={category.id}
+          {exam._count?.children ? (
+            <ExamTree
+              parentId={exam.id}
               level={level + 1}
               onEdit={onEdit}
               onDelete={onDelete}
               onAddChild={onAddChild}
             />
           ) : null}
-        </CategoryItem>
+        </ExamItem>
       ))}
     </div>
   );

@@ -1,15 +1,15 @@
 const prisma = require('../config/db');
 
-exports.getPapers = async (categoryId) => {
+exports.getPapers = async (examId) => {
   const where = {};
-  if (categoryId) {
-    where.categoryId = categoryId;
+  if (examId) {
+    where.examId = examId;
   }
 
   return await prisma.paper.findMany({
     where,
     include: {
-      category: {
+      exam: {
         select: {
           name: true,
           slug: true,
@@ -31,7 +31,7 @@ exports.getPaperById = async (id) => {
   return await prisma.paper.findUnique({
     where: { id },
     include: {
-      category: {
+      exam: {
         select: {
           name: true,
           slug: true,
@@ -47,12 +47,12 @@ exports.getPaperById = async (id) => {
 };
 
 exports.createPaper = async (data) => {
-  // Check if category exists
-  const categoryExists = await prisma.category.findUnique({
-    where: { id: data.categoryId },
+  // Check if exam exists
+  const examExists = await prisma.exam.findUnique({
+    where: { id: data.examId },
   });
-  if (!categoryExists) {
-    throw new Error(`Category not found: ${data.categoryId}`);
+  if (!examExists) {
+    throw new Error(`Exam not found: ${data.examId}`);
   }
 
   return await prisma.paper.create({
@@ -66,12 +66,12 @@ exports.updatePaper = async (id, data) => {
     throw new Error('Paper not found');
   }
 
-  if (data.categoryId) {
-    const categoryExists = await prisma.category.findUnique({
-      where: { id: data.categoryId },
+  if (data.examId) {
+    const examExists = await prisma.exam.findUnique({
+      where: { id: data.examId },
     });
-    if (!categoryExists) {
-      throw new Error(`Category not found: ${data.categoryId}`);
+    if (!examExists) {
+      throw new Error(`Exam not found: ${data.examId}`);
     }
   }
 

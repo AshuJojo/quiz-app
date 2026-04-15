@@ -1,13 +1,13 @@
-const categoryService = require('../services/categoryService');
+const examService = require('../services/examService');
 
 exports.index = async (req, res, next) => {
   try {
     const { parentId } = req.query;
-    const categories = await categoryService.getCategories(parentId);
+    const exams = await examService.getExams(parentId);
     res.status(200).json({
       success: true,
-      count: categories.length,
-      data: categories,
+      count: exams.length,
+      data: exams,
     });
   } catch (error) {
     next(error);
@@ -16,16 +16,16 @@ exports.index = async (req, res, next) => {
 
 exports.show = async (req, res, next) => {
   try {
-    const category = await categoryService.getCategoryById(req.params.id);
-    if (!category) {
+    const exam = await examService.getExamById(req.params.id);
+    if (!exam) {
       return res.status(404).json({
         success: false,
-        message: 'Category not found',
+        message: 'Exam not found',
       });
     }
     res.status(200).json({
       success: true,
-      data: category,
+      data: exam,
     });
   } catch (error) {
     next(error);
@@ -34,10 +34,10 @@ exports.show = async (req, res, next) => {
 
 exports.store = async (req, res, next) => {
   try {
-    const category = await categoryService.createCategory(req.body);
+    const exam = await examService.createExam(req.body);
     res.status(201).json({
       success: true,
-      data: category,
+      data: exam,
     });
   } catch (error) {
     if (error.message.includes('slug')) {
@@ -46,7 +46,7 @@ exports.store = async (req, res, next) => {
         message: error.message,
       });
     }
-    if (error.message.includes('Parent category not found')) {
+    if (error.message.includes('Parent exam not found')) {
       return res.status(400).json({
         success: false,
         message: error.message,
@@ -58,10 +58,10 @@ exports.store = async (req, res, next) => {
 
 exports.update = async (req, res, next) => {
   try {
-    const category = await categoryService.updateCategory(req.params.id, req.body);
+    const exam = await examService.updateExam(req.params.id, req.body);
     res.status(200).json({
       success: true,
-      data: category,
+      data: exam,
     });
   } catch (error) {
     if (error.message.includes('own parent')) {
@@ -70,13 +70,13 @@ exports.update = async (req, res, next) => {
         message: error.message,
       });
     }
-    if (error.message.includes('Category not found')) {
+    if (error.message.includes('Exam not found')) {
       return res.status(404).json({
         success: false,
         message: error.message,
       });
     }
-    if (error.message.includes('Parent category not found')) {
+    if (error.message.includes('Parent exam not found')) {
       return res.status(400).json({
         success: false,
         message: error.message,
@@ -88,13 +88,13 @@ exports.update = async (req, res, next) => {
 
 exports.destroy = async (req, res, next) => {
   try {
-    await categoryService.deleteCategory(req.params.id);
+    await examService.deleteExam(req.params.id);
     res.status(200).json({
       success: true,
-      message: 'Category deleted successfully',
+      message: 'Exam deleted successfully',
     });
   } catch (error) {
-    if (error.message.includes('Category not found')) {
+    if (error.message.includes('Exam not found')) {
       return res.status(404).json({
         success: false,
         message: error.message,

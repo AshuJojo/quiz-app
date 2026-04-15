@@ -3,7 +3,7 @@ const { z } = require('zod');
 exports.createPaperSchema = z.object({
   body: z.object({
     title: z.string().min(2, { message: 'Title must be at least 2 characters' }),
-    categoryId: z.string().uuid({ message: 'Invalid category ID' }),
+    examId: z.string().uuid({ message: 'Invalid exam ID' }),
     totalQuestions: z
       .number()
       .int()
@@ -21,7 +21,7 @@ exports.updatePaperSchema = z.object({
   body: z
     .object({
       title: z.string().min(2, { message: 'Title must be at least 2 characters' }).optional(),
-      categoryId: z.string().uuid({ message: 'Invalid category ID' }).optional(),
+      examId: z.string().uuid({ message: 'Invalid exam ID' }).optional(),
       totalQuestions: z
         .number()
         .int()

@@ -10,8 +10,8 @@ export const siteConfig = {
       icon: LayoutGrid,
     },
     {
-      title: 'Categories',
-      href: '/categories',
+      title: 'Exams',
+      href: '/exams',
       icon: FolderTree,
     },
     {

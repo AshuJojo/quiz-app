@@ -10,7 +10,7 @@ const slugify = (text) => {
     .replace(/\-\-+/g, '-'); // Replace multiple - with single -
 };
 
-exports.getCategories = async (parentId) => {
+exports.getExams = async (parentId) => {
   const where = {};
 
   // If parentId is provided (even as "null" string), we filter.
@@ -23,7 +23,7 @@ exports.getCategories = async (parentId) => {
     }
   }
 
-  return await prisma.category.findMany({
+  return await prisma.exam.findMany({
     where,
     include: {
       _count: {
@@ -39,8 +39,8 @@ exports.getCategories = async (parentId) => {
   });
 };
 
-exports.getCategoryById = async (id) => {
-  return await prisma.category.findUnique({
+exports.getExamById = async (id) => {
+  return await prisma.exam.findUnique({
     where: { id },
     include: {
       children: {
@@ -57,11 +57,11 @@ exports.getCategoryById = async (id) => {
   });
 };
 
-exports.createCategory = async (data) => {
+exports.createExam = async (data) => {
   let slug = data.slug || slugify(data.name);
 
   // Check if slug exists, if so, append unique suffix
-  const existingSlug = await prisma.category.findUnique({ where: { slug } });
+  const existingSlug = await prisma.exam.findUnique({ where: { slug } });
   if (existingSlug) {
     const uniqueSuffix = Math.floor(100 + Math.random() * 900); // Simple 3-digit suffix
     slug = `${slug}-${uniqueSuffix}`;
@@ -69,38 +69,41 @@ exports.createCategory = async (data) => {
 
   // Validate parentId if provided
   if (data.parentId) {
-    const parentExists = await prisma.category.findUnique({
+    const parentExists = await prisma.exam.findUnique({
       where: { id: data.parentId },
     });
     if (!parentExists) {
-      throw new Error(`Parent category not found: ${data.parentId}`);
+      throw new Error(`Parent exam not found: ${data.parentId}`);
     }
   }
 
-  return await prisma.category.create({
+  const { parentId, ...examData } = data;
+
+  return await prisma.exam.create({
     data: {
-      ...data,
+      ...examData,
       slug,
+      parent: parentId ? { connect: { id: parentId } } : undefined,
     },
   });
 };
 
-exports.updateCategory = async (id, data) => {
-  // Check if category exists
-  const targetCategory = await prisma.category.findUnique({ where: { id } });
-  if (!targetCategory) {
-    throw new Error('Category not found');
+exports.updateExam = async (id, data) => {
+  // Check if exam exists
+  const targetExam = await prisma.exam.findUnique({ where: { id } });
+  if (!targetExam) {
+    throw new Error('Exam not found');
   }
 
   // Prevent simple self-reference loop
 
   if (data.parentId === id) {
-    throw new Error('A category cannot be its own parent');
+    throw new Error('An exam cannot be its own parent');
   }
 
   // Only handle slug if it's explicitly provided in the patch data
   if (data.slug) {
-    const existingSlug = await prisma.category.findFirst({
+    const existingSlug = await prisma.exam.findFirst({
       where: {
         slug: data.slug,
         NOT: { id }, // Don't match itself
@@ -114,23 +117,32 @@ exports.updateCategory = async (id, data) => {
 
   // Validate parentId if provided
   if (data.parentId) {
-    const parentExists = await prisma.category.findUnique({
+    const parentExists = await prisma.exam.findUnique({
       where: { id: data.parentId },
     });
     if (!parentExists) {
-      throw new Error(`Parent category not found: ${data.parentId}`);
+      throw new Error(`Parent exam not found: ${data.parentId}`);
     }
   }
 
-  return await prisma.category.update({
+  const { parentId, ...updateData } = data;
+
+  return await prisma.exam.update({
     where: { id },
-    data,
+    data: {
+      ...updateData,
+      parent: parentId
+        ? { connect: { id: parentId } }
+        : parentId === null
+          ? { disconnect: true }
+          : undefined,
+    },
   });
 };
 
-exports.deleteCategory = async (id) => {
+exports.deleteExam = async (id) => {
   // Check if it has children or papers
-  const category = await prisma.category.findUnique({
+  const exam = await prisma.exam.findUnique({
     where: { id },
     include: {
       _count: {
@@ -139,19 +151,19 @@ exports.deleteCategory = async (id) => {
     },
   });
 
-  if (!category) {
-    throw new Error('Category not found');
+  if (!exam) {
+    throw new Error('Exam not found');
   }
 
-  if (category._count.children > 0) {
-    throw new Error('Cannot delete category with sub-categories. Delete sub-categories first.');
+  if (exam._count.children > 0) {
+    throw new Error('Cannot delete exam with sub-exams. Delete sub-exams first.');
   }
 
-  if (category._count.papers > 0) {
-    throw new Error('Cannot delete category with associated papers.');
+  if (exam._count.papers > 0) {
+    throw new Error('Cannot delete exam with associated papers.');
   }
 
-  return await prisma.category.delete({
+  return await prisma.exam.delete({
     where: { id },
   });
 };

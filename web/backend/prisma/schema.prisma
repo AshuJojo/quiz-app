@@ -14,24 +14,23 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
-model Category {
-  id        String     @id @default(uuid())
+model Exam {
+  id        String   @id @default(uuid())
   name      String
-  slug      String     @unique
-  icon      String?
+  slug      String   @unique
   parentId  String?
-  parent    Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
-  children  Category[] @relation("CategoryToCategory")
+  parent    Exam?    @relation("ExamToExam", fields: [parentId], references: [id])
+  children  Exam[]   @relation("ExamToExam")
   papers    Paper[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Paper {
   id             String     @id @default(uuid())
   title          String
-  categoryId     String
-  category       Category   @relation(fields: [categoryId], references: [id])
+  examId         String
+  exam           Exam       @relation(fields: [examId], references: [id])
   questions      Question[]
   totalQuestions Int
   duration       Int
