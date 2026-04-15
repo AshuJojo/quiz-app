@@ -21,7 +21,7 @@ export function DashboardOverview() {
 
         <div className="rounded-md bg-surface-container-lowest p-6 shadow-ambient transition-transform hover:scale-[1.02]">
           <h3 className="text-sm font-bold tracking-wide text-on-surface-variant uppercase">
-            Categories
+            Exams
           </h3>
           <p className="mt-2 text-4xl font-bold text-primary">12</p>
         </div>
@@ -37,7 +37,7 @@ export function DashboardOverview() {
       <div className="rounded-md bg-surface-container-lowest p-8 shadow-ambient">
         <h3 className="font-display text-xl font-bold text-on-background">Analytics Progress</h3>
         <p className="mt-2 text-sm text-on-surface-variant">
-          The "Paper" section is ready for management. Start by reviewing categories.
+          The "Paper" section is ready for management. Start by reviewing exams.
         </p>
         <div className="mt-6 h-2 w-full overflow-hidden rounded-full bg-surface-container">
           <div className="h-full w-[65%] bg-primary transition-all duration-1000" />
