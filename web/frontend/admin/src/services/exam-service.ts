@@ -7,13 +7,15 @@ export const examService = {
   getExams: async (
     parentId: string | null = null,
     page: number = 1,
-    limit: number | 'all' = 10
+    limit: number | 'all' = 10,
+    search?: string
   ) => {
     const response = await axios.get(`${API_URL}/exams`, {
       params: {
         parentId: parentId ?? 'null',
         page,
         limit,
+        search,
       },
     });
     return response.data;

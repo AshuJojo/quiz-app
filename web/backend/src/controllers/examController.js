@@ -2,8 +2,8 @@ const examService = require('../services/examService');
 
 exports.index = async (req, res, next) => {
   try {
-    const { parentId, page, limit } = req.query;
-    const result = await examService.getExams(parentId, page, limit);
+    const { parentId, page, limit, search } = req.query;
+    const result = await examService.getExams(parentId, page, limit, search);
 
     res.status(200).json({
       success: true,

@@ -1,12 +1,13 @@
 'use client';
 
 import { ExamForm } from '@/components/features/exams/components/exam-form';
+import { ExamItem } from '@/components/features/exams/components/exam-item';
 import { ExamTree } from '@/components/features/exams/components/exam-tree';
 import { cn } from '@/lib/utils/cn';
 import { examService } from '@/services/exam-service';
 import { CreateExamInput, Exam, UpdateExamInput } from '@/types/exam';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, FolderTree, Plus, PlusCircle, Search } from 'lucide-react';
+import { Check, ChevronDown, FolderTree, Loader2, Plus, PlusCircle, Search } from 'lucide-react';
 import { useState } from 'react';
 
 export default function ExamsPage() {
@@ -16,16 +17,19 @@ export default function ExamsPage() {
   const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const pageSize = 10;
 
   // Fetch root exams for count-based logic and empty state
   const { data: rootExamsData, isLoading: isRootLoading } = useQuery({
-    queryKey: ['exams', null, currentPage],
-    queryFn: () => examService.getExams(null, currentPage, pageSize),
+    queryKey: ['exams', searchQuery ? 'search' : null, currentPage, searchQuery],
+    queryFn: () => examService.getExams(null, currentPage, pageSize, searchQuery),
   });
 
+  const exams = Array.isArray(rootExamsData?.data) ? rootExamsData.data : [];
   const rootExamsCount = rootExamsData?.total || 0;
   const totalPages = Math.ceil(rootExamsCount / pageSize);
+  const isSearchActive = searchQuery.length > 0;
 
   // Mutations
   const createMutation = useMutation({
@@ -109,6 +113,18 @@ export default function ExamsPage() {
     }
   };
 
+  const allCurrentPageIds = exams.map((e: Exam) => e.id);
+  const isAllSelected =
+    allCurrentPageIds.length > 0 && allCurrentPageIds.every((id) => selectedIds.includes(id));
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...allCurrentPageIds])));
+    } else {
+      setSelectedIds((prev) => prev.filter((id) => !allCurrentPageIds.includes(id)));
+    }
+  };
+
   return (
     <div className="p-8 max-w-[1600px] mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Header Section */}
@@ -123,21 +139,29 @@ export default function ExamsPage() {
         </div>
 
         <div className="flex items-center gap-4">
-          {selectedIds.length > 0 && (
-            <button
-              onClick={handleBulkDelete}
-              className="flex items-center justify-center gap-3 px-8 py-5 bg-red-500/10 text-red-500 font-black rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-lg active:scale-95"
-            >
-              Delete Selected ({selectedIds.length})
-            </button>
-          )}
+          <div className="relative group">
+            <Search
+              className="absolute left-5 top-1/2 -translate-y-1/2 text-on-surface-variant/40 group-focus-within:text-primary transition-colors"
+              size={18}
+            />
+            <input
+              type="text"
+              placeholder="Search exams..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="pl-12 pr-6 py-4 bg-surface-container-low/50 border-2 border-outline-variant/10 rounded-2xl w-full lg:w-80 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none font-bold placeholder:text-on-surface-variant/30 text-base transition-all"
+            />
+          </div>
 
           <button
             onClick={() => handleOpenCreateForm(null)}
             className="flex items-center justify-center gap-3 px-10 py-5 bg-primary text-white font-black rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/20 ring-1 ring-primary/20"
           >
             <Plus size={24} strokeWidth={3} />
-            Create Exam
+            Add Exam
           </button>
         </div>
       </header>
@@ -158,27 +182,95 @@ export default function ExamsPage() {
               </span>
             </div>
 
+            {/* Contextual Action Bar */}
+            {selectedIds.length > 0 && (
+              <div className="bg-red-500/[0.03] border-b border-outline-variant/10 px-10 py-4 flex items-center justify-between animate-in slide-in-from-top duration-300">
+                <div className="flex items-center gap-8">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className="relative flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={isAllSelected}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="peer appearance-none w-5 h-5 rounded-md border-2 border-outline-variant/50 checked:bg-primary checked:border-primary transition-all cursor-pointer ring-offset-background focus:ring-2 focus:ring-primary/20"
+                      />
+                      <Check
+                        className="absolute inset-0 m-auto text-white scale-0 peer-checked:scale-100 transition-transform pointer-events-none"
+                        size={14}
+                        strokeWidth={4}
+                      />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/60 group-hover:text-on-background transition-colors">
+                      Select All
+                    </span>
+                  </label>
+                  <div className="h-4 w-[1px] bg-outline-variant/20" />
+                  <span className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-widest">
+                    {selectedIds.length} item{selectedIds.length > 1 ? 's' : ''} selected
+                  </span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => setSelectedIds([])}
+                    className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/40 hover:text-on-background transition-colors"
+                  >
+                    Clear Selection
+                  </button>
+                  <button
+                    onClick={handleBulkDelete}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-red-500 text-white text-[10px] font-black uppercase tracking-[0.15em] rounded-xl hover:bg-red-600 transition-all shadow-lg shadow-red-500/10 active:scale-95"
+                  >
+                    Delete Selected
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Tree Content Area */}
             <div className="p-6 min-h-[60vh] relative flex flex-col justify-start">
-              {rootExamsCount === 0 && !isRootLoading ? (
+              {isRootLoading ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-4">
+                  <Loader2 size={40} className="animate-spin text-primary/40" />
+                  <p className="font-bold uppercase tracking-widest text-on-surface-variant/40 text-[10px]">
+                    Hydrating Repository...
+                  </p>
+                </div>
+              ) : rootExamsCount === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in zoom-in-95 duration-500">
                   <div className="w-24 h-24 bg-surface-container rounded-[2.5rem] flex items-center justify-center mb-6 border border-outline-variant/10 shadow-inner">
                     <Search className="text-on-surface-variant/20" size={40} />
                   </div>
                   <h3 className="text-2xl font-black text-on-background tracking-tight mb-2">
-                    No Exams Found
+                    {isSearchActive ? 'No Matches Found' : 'No Exams Found'}
                   </h3>
-                  <p className="text-on-surface-variant/60 font-medium max-w-xs mb-8 leading-relaxed">
-                    It looks like you haven't started your taxonomy yet. Create your first exam to
-                    get started.
+                  <p className="text-on-surface-variant/60 font-bold max-w-sm mb-10 leading-relaxed uppercase tracking-wider text-xs">
+                    {isSearchActive
+                      ? `No results for "${searchQuery}". Try a different term.`
+                      : "It looks like you haven't started your taxonomy yet. Create your first exam to get started."}
                   </p>
-                  <button
-                    onClick={() => handleOpenCreateForm(null)}
-                    className="flex items-center gap-2 px-8 py-4 bg-primary text-white font-bold rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
-                  >
-                    <PlusCircle size={20} strokeWidth={2.5} />
-                    Create Your First Exam
-                  </button>
+                  {!isSearchActive && (
+                    <button
+                      onClick={() => handleOpenCreateForm(null)}
+                      className="flex items-center gap-3 px-10 py-5 bg-primary text-white font-black rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/20"
+                    >
+                      <PlusCircle size={20} strokeWidth={2.5} />
+                      Create Your First Exam
+                    </button>
+                  )}
+                </div>
+              ) : isSearchActive ? (
+                <div className="space-y-3">
+                  {exams.map((exam: Exam) => (
+                    <ExamItem
+                      key={exam.id}
+                      exam={exam}
+                      onEdit={handleOpenEditForm}
+                      onDelete={handleDelete}
+                      onAddChild={handleOpenCreateForm}
+                      isSelected={selectedIds.includes(exam.id)}
+                      onSelect={handleSelect}
+                    />
+                  ))}
                 </div>
               ) : (
                 <div className="relative">

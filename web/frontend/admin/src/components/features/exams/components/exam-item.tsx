@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Exam } from '@/types/exam';
-import { ChevronDown, Plus, Pencil, Trash2, Folder, FileText } from 'lucide-react';
+import { ChevronDown, Plus, Pencil, Trash2, Folder, FileText, Check } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
 interface ExamItemProps {
@@ -40,12 +40,17 @@ export function ExamItem({
         style={{ marginLeft: `${level * 2}rem` }}
       >
         <div className="flex items-center gap-3">
-          <div className="flex items-center">
+          <div className="relative flex items-center">
             <input
               type="checkbox"
               checked={isSelected}
               onChange={(e) => onSelect?.(exam.id!, e.target.checked)}
-              className="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary/20 accent-primary cursor-pointer"
+              className="peer appearance-none w-5 h-5 rounded-md border-2 border-outline-variant/50 checked:bg-primary checked:border-primary transition-all cursor-pointer ring-offset-background focus:ring-2 focus:ring-primary/20"
+            />
+            <Check
+              className="absolute inset-0 m-auto text-white scale-0 peer-checked:scale-100 transition-transform pointer-events-none"
+              size={14}
+              strokeWidth={4}
             />
           </div>
 

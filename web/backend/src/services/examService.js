@@ -10,12 +10,12 @@ const slugify = (text) => {
     .replace(/\-\-+/g, '-'); // Replace multiple - with single -
 };
 
-exports.getExams = async (parentId, page, limit) => {
+exports.getExams = async (parentId, page, limit, search) => {
   const where = {};
 
-  // If parentId is provided (even as "null" string), we filter.
-  // If it is undefined (missing from query), we fetch all.
-  if (parentId !== undefined) {
+  if (search) {
+    where.name = { contains: search, mode: 'insensitive' };
+  } else if (parentId !== undefined) {
     if (parentId === 'null' || parentId === 'undefined' || parentId === '') {
       where.parentId = null;
     } else {
