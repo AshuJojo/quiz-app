@@ -1,9 +1,9 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { siteConfig } from '@/config/site';
 import { cn } from '@/lib/utils/cn';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export function Sidebar() {
   const pathname = usePathname();

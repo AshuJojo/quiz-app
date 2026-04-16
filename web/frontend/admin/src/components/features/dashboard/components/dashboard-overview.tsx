@@ -37,7 +37,7 @@ export function DashboardOverview() {
       <div className="rounded-md bg-surface-container-lowest p-8 shadow-ambient">
         <h3 className="font-display text-xl font-bold text-on-background">Analytics Progress</h3>
         <p className="mt-2 text-sm text-on-surface-variant">
-          The "Paper" section is ready for management. Start by reviewing exams.
+          The &quot;Paper&quot; section is ready for management. Start by reviewing exams.
         </p>
         <div className="mt-6 h-2 w-full overflow-hidden rounded-full bg-surface-container">
           <div className="h-full w-[65%] bg-primary transition-all duration-1000" />

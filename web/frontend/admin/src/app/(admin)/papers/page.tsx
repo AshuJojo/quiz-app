@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { paperService } from '@/services/paper-service';
-import { PaperItem } from '@/components/features/papers/components/paper-item';
 import { PaperForm } from '@/components/features/papers/components/paper-form';
-import { Paper, CreatePaperInput, UpdatePaperInput } from '@/types/paper';
-import { FileText, Plus, Search, Loader2, Check, ChevronDown } from 'lucide-react';
+import { PaperItem } from '@/components/features/papers/components/paper-item';
 import { cn } from '@/lib/utils/cn';
+import { paperService } from '@/services/paper-service';
+import { CreatePaperInput, Paper, UpdatePaperInput } from '@/types/paper';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Check, ChevronDown, FileText, Loader2, Plus, Search } from 'lucide-react';
+import { useState } from 'react';
 
 export default function PapersPage() {
   const queryClient = useQueryClient();
@@ -25,7 +25,7 @@ export default function PapersPage() {
   const papers = Array.isArray(papersData?.data) ? papersData.data : [];
   const totalPapers = papersData?.total || 0;
   const totalPages = papersData?.totalPages || 1;
-  const isAllSelected = papers.length > 0 && papers.every((p) => selectedIds.includes(p.id!));
+  const isAllSelected = papers.length > 0 && papers.every((p: any) => selectedIds.includes(p.id!));
 
   const createMutation = useMutation({
     mutationFn: (data: CreatePaperInput) => paperService.createPaper(data),
@@ -96,10 +96,10 @@ export default function PapersPage() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      const allIds = papers.map((p) => p.id!);
+      const allIds = papers.map((p: any) => p.id!);
       setSelectedIds((prev) => Array.from(new Set([...prev, ...allIds])));
     } else {
-      const allIds = papers.map((p) => p.id!);
+      const allIds = papers.map((p: any) => p.id!);
       setSelectedIds((prev) => prev.filter((id) => !allIds.includes(id)));
     }
   };

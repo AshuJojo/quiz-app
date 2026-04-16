@@ -1,13 +1,10 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Paper, PaperSchema, CreatePaperInput } from '@/types/paper';
-import { Exam } from '@/types/exam';
-import { X, Loader2, Save } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import { useQuery } from '@tanstack/react-query';
-import { examService } from '@/services/exam-service';
+import { CreatePaperInput, Paper, PaperSchema } from '@/types/paper';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Loader2, X } from 'lucide-react';
+import { useForm } from 'react-hook-form';
 
 interface PaperFormProps {
   initialData?: Partial<Paper>;

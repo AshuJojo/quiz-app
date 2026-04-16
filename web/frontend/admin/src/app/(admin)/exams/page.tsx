@@ -115,7 +115,8 @@ export default function ExamsPage() {
 
   const allCurrentPageIds = exams.map((e: Exam) => e.id);
   const isAllSelected =
-    allCurrentPageIds.length > 0 && allCurrentPageIds.every((id) => selectedIds.includes(id));
+    allCurrentPageIds.length > 0 &&
+    allCurrentPageIds.every((id: string) => selectedIds.includes(id));
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {

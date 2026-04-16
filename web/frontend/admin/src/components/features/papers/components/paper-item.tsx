@@ -1,17 +1,7 @@
 'use client';
 
 import { Paper } from '@/types/paper';
-import {
-  Pencil,
-  Trash2,
-  Clock,
-  FileText,
-  Calendar,
-  CheckCircle2,
-  XCircle,
-  Check,
-} from 'lucide-react';
-import { cn } from '@/lib/utils/cn';
+import { Calendar, Check, Clock, FileText, Pencil, Trash2 } from 'lucide-react';
 
 interface PaperItemProps {
   paper: Paper;

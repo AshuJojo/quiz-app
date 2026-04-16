@@ -25,6 +25,9 @@
     "turbo": "^2.9.6"
   },
   "lint-staged": {
+    "web/frontend/admin/**/*.{ts,tsx}": [
+      "pnpm --filter admin exec eslint --fix"
+    ],
     "*.{js,ts,tsx,jsx,json,md,css}": [
       "prettier --write"
     ]
