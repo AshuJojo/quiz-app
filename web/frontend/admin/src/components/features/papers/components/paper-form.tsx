@@ -2,52 +2,54 @@
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Exam, ExamSchema } from '@/types/exam';
-import { X, Loader2, PlusCircle } from 'lucide-react';
+import { Paper, PaperSchema, CreatePaperInput } from '@/types/paper';
+import { Exam } from '@/types/exam';
+import { X, Loader2, Save } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { useQuery } from '@tanstack/react-query';
+import { examService } from '@/services/exam-service';
 
-interface ExamFormProps {
-  initialData?: Partial<Exam>;
-  parentId?: string | null;
-  onSubmit: (data: Partial<Exam>) => Promise<void>;
+interface PaperFormProps {
+  initialData?: Partial<Paper>;
+  onSubmit: (data: CreatePaperInput) => Promise<void>;
   onClose: () => void;
   isLoading?: boolean;
 }
 
-export function ExamForm({ initialData, parentId, onSubmit, onClose, isLoading }: ExamFormProps) {
+export function PaperForm({ initialData, onSubmit, onClose, isLoading }: PaperFormProps) {
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<z.infer<typeof ExamSchema>>({
-    resolver: zodResolver(ExamSchema),
+  } = useForm<CreatePaperInput>({
+    resolver: zodResolver(PaperSchema),
     defaultValues: {
-      name: initialData?.name || '',
-      parentId: initialData?.parentId || parentId || null,
+      title: initialData?.title || '',
+      examId: initialData?.examId || null,
+      totalQuestions: initialData?.totalQuestions || 0,
+      duration: initialData?.duration || 0,
+      year: initialData?.year || null,
+      isPublished: initialData?.isPublished || false,
     },
   });
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      {/* Premium Backdrop with high-performance blur */}
+      {/* Premium Backdrop */}
       <div
         className="absolute inset-0 bg-on-background/20 backdrop-blur-md animate-in fade-in duration-500"
         onClick={onClose}
       />
 
-      {/* Modal Container with Glassmorphism */}
+      {/* Modal Container */}
       <div className="relative w-full max-w-lg bg-surface-container-lowest/90 backdrop-blur-2xl rounded-[2rem] shadow-2xl border border-white/40 overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 shadow-primary/5">
-        {/* Decorative background element */}
         <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex items-center justify-between px-8 py-4 border-b border-outline-variant/30 relative">
           <div className="flex items-center gap-4">
-            <div>
-              <h2 className="text-3xl font-black tracking-tight text-on-background font-display leading-tight">
-                {initialData?.id ? 'Edit Exam' : 'Add Exam'}
-              </h2>
-            </div>
+            <h2 className="text-3xl font-black tracking-tight text-on-background font-display leading-tight">
+              {initialData?.id ? 'Edit Paper' : 'Add Paper'}
+            </h2>
           </div>
           <button
             onClick={onClose}
@@ -60,22 +62,25 @@ export function ExamForm({ initialData, parentId, onSubmit, onClose, isLoading }
         <form onSubmit={handleSubmit(onSubmit)} className="p-8 space-y-4 relative">
           <div className="flex flex-col gap-2">
             <label className="text-sm font-black text-on-surface uppercase tracking-widest ml-1">
-              Exam Name
+              Paper Name
             </label>
             <div className="relative group">
               <input
-                {...register('name')}
-                placeholder="e.g. UPSC, JEE, Civil Engineering"
+                {...register('title')}
+                autoFocus
+                placeholder="e.g. Civil Services (Prelims) 2024"
                 className={cn(
                   'w-full px-6 py-4 rounded-2xl border-2 border-outline-variant/30 bg-white/50 text-on-background font-bold placeholder:text-on-surface-variant/40 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none text-lg',
-                  errors.name && 'border-red-500/50 focus:border-red-500 focus:ring-red-500/10'
+                  errors.title && 'border-red-500/50 focus:border-red-500 focus:ring-red-500/10'
                 )}
               />
             </div>
-            {errors.name && (
+            {errors.title && (
               <div className="flex items-center gap-2 mt-2 ml-1 text-red-600 animate-in slide-in-from-left-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-red-600" />
-                <p className="text-xs font-black uppercase tracking-wider">{errors.name.message}</p>
+                <p className="text-xs font-black uppercase tracking-wider">
+                  {errors.title.message}
+                </p>
               </div>
             )}
           </div>
@@ -96,7 +101,7 @@ export function ExamForm({ initialData, parentId, onSubmit, onClose, isLoading }
               {isLoading ? (
                 <Loader2 size={18} className="animate-spin" />
               ) : (
-                <>{initialData?.id ? 'Update Exam' : 'Create Exam'}</>
+                <>{initialData?.id ? 'Update Paper' : 'Create Paper'}</>
               )}
             </button>
           </div>

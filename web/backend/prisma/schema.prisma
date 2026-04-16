@@ -32,8 +32,8 @@ model Paper {
   examId         String?
   exam           Exam?      @relation(fields: [examId], references: [id], onDelete: SetNull)
   questions      Question[]
-  totalQuestions Int
-  duration       Int
+  totalQuestions Int        @default(0)
+  duration       Int        @default(0)
   year           Int?
   isPublished    Boolean    @default(false)
   createdAt      DateTime   @default(now())

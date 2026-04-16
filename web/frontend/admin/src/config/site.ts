@@ -15,8 +15,8 @@ export const siteConfig = {
       icon: FolderTree,
     },
     {
-      title: 'Paper',
-      href: '/paper',
+      title: 'Papers',
+      href: '/papers',
       icon: FileText,
     },
   ],

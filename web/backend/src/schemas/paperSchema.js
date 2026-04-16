@@ -3,12 +3,17 @@ const { z } = require('zod');
 exports.createPaperSchema = z.object({
   body: z.object({
     title: z.string().min(2, { message: 'Title must be at least 2 characters' }),
-    examId: z.string().uuid({ message: 'Invalid exam ID' }),
+    examId: z.string().uuid({ message: 'Invalid exam ID' }).optional().nullable(),
     totalQuestions: z
       .number()
       .int()
-      .positive({ message: 'Total questions must be a positive integer' }),
-    duration: z.number().int().positive({ message: 'Duration must be a positive integer' }),
+      .nonnegative({ message: 'Total questions must be a non-negative integer' })
+      .optional(),
+    duration: z
+      .number()
+      .int()
+      .nonnegative({ message: 'Duration must be a non-negative integer' })
+      .optional(),
     year: z.number().int().optional().nullable(),
     isPublished: z.boolean().optional(),
   }),
@@ -21,16 +26,16 @@ exports.updatePaperSchema = z.object({
   body: z
     .object({
       title: z.string().min(2, { message: 'Title must be at least 2 characters' }).optional(),
-      examId: z.string().uuid({ message: 'Invalid exam ID' }).optional(),
+      examId: z.string().uuid({ message: 'Invalid exam ID' }).optional().nullable(),
       totalQuestions: z
         .number()
         .int()
-        .positive({ message: 'Total questions must be a positive integer' })
+        .nonnegative({ message: 'Total questions must be a non-negative integer' })
         .optional(),
       duration: z
         .number()
         .int()
-        .positive({ message: 'Duration must be a positive integer' })
+        .nonnegative({ message: 'Duration must be a non-negative integer' })
         .optional(),
       year: z.number().int().optional().nullable(),
       isPublished: z.boolean().optional(),

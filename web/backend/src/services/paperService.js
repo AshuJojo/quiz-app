@@ -47,12 +47,14 @@ exports.getPaperById = async (id) => {
 };
 
 exports.createPaper = async (data) => {
-  // Check if exam exists
-  const examExists = await prisma.exam.findUnique({
-    where: { id: data.examId },
-  });
-  if (!examExists) {
-    throw new Error(`Exam not found: ${data.examId}`);
+  // Check if exam exists if examId is provided
+  if (data.examId) {
+    const examExists = await prisma.exam.findUnique({
+      where: { id: data.examId },
+    });
+    if (!examExists) {
+      throw new Error(`Exam not found: ${data.examId}`);
+    }
   }
 
   return await prisma.paper.create({
