@@ -6,7 +6,7 @@ import { paperService } from '@/services/paper-service';
 import { PaperItem } from '@/components/features/papers/components/paper-item';
 import { PaperForm } from '@/components/features/papers/components/paper-form';
 import { Paper, CreatePaperInput, UpdatePaperInput } from '@/types/paper';
-import { FileText, Plus, Search, Loader2, Check } from 'lucide-react';
+import { FileText, Plus, Search, Loader2, Check, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
 export default function PapersPage() {
@@ -15,13 +15,16 @@ export default function PapersPage() {
   const [editingPaper, setEditingPaper] = useState<Paper | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const { data: papersData, isLoading } = useQuery({
-    queryKey: ['papers', searchQuery],
-    queryFn: () => paperService.getPapers(undefined, searchQuery),
+    queryKey: ['papers', searchQuery, currentPage],
+    queryFn: () => paperService.getPapers(undefined, searchQuery, currentPage),
   });
 
   const papers = Array.isArray(papersData?.data) ? papersData.data : [];
+  const totalPapers = papersData?.total || 0;
+  const totalPages = papersData?.totalPages || 1;
   const isAllSelected = papers.length > 0 && papers.every((p) => selectedIds.includes(p.id!));
 
   const createMutation = useMutation({
@@ -134,7 +137,10 @@ export default function PapersPage() {
               type="text"
               placeholder="Search papers..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
               className="pl-12 pr-6 py-4 bg-surface-container-low/50 border-2 border-outline-variant/10 rounded-2xl w-full lg:w-80 focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none font-bold placeholder:text-on-surface-variant/30 text-base transition-all"
             />
           </div>
@@ -256,6 +262,50 @@ export default function PapersPage() {
                 </div>
               )}
             </div>
+
+            {/* Pagination Footer */}
+            {!isLoading && papers.length > 0 && totalPages > 1 && (
+              <footer className="px-10 py-6 border-t border-outline-variant/10 bg-surface-container-low/20 flex flex-col sm:flex-row items-center justify-between gap-6">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant/40">
+                  Showing <span className="text-on-background">{(currentPage - 1) * 10 + 1}</span> -{' '}
+                  <span className="text-on-background">
+                    {Math.min(currentPage * 10, totalPapers)}
+                  </span>{' '}
+                  of <span className="text-on-background">{totalPapers} Papers</span>
+                </p>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="p-2 text-on-surface-variant hover:bg-surface-container rounded-lg disabled:opacity-30 transition-colors"
+                  >
+                    <ChevronDown className="rotate-90" size={18} />
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setCurrentPage(p)}
+                      className={cn(
+                        'w-10 h-10 rounded-xl text-xs font-black transition-all',
+                        p === currentPage
+                          ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                          : 'text-on-surface-variant hover:bg-surface-container'
+                      )}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-2 text-on-surface-variant hover:bg-surface-container rounded-lg disabled:opacity-30 transition-colors"
+                  >
+                    <ChevronDown className="-rotate-90" size={18} />
+                  </button>
+                </div>
+              </footer>
+            )}
           </div>
         </div>
       </div>

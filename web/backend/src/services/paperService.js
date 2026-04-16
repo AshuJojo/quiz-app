@@ -1,6 +1,7 @@
 const prisma = require('../config/db');
 
-exports.getPapers = async (examId, search) => {
+exports.getPapers = async (examId, search, page = 1, limit = 10) => {
+  const skip = (page - 1) * limit;
   const where = {};
   if (search) {
     where.title = { contains: search, mode: 'insensitive' };
@@ -9,25 +10,35 @@ exports.getPapers = async (examId, search) => {
     where.examId = examId;
   }
 
-  return await prisma.paper.findMany({
-    where,
-    include: {
-      exam: {
-        select: {
-          name: true,
-          slug: true,
+  const [total, papers] = await Promise.all([
+    prisma.paper.count({ where }),
+    prisma.paper.findMany({
+      where,
+      include: {
+        exam: {
+          select: {
+            name: true,
+            slug: true,
+          },
+        },
+        _count: {
+          select: {
+            questions: true,
+          },
         },
       },
-      _count: {
-        select: {
-          questions: true,
-        },
+      orderBy: {
+        createdAt: 'desc',
       },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  });
+      skip: Number(skip),
+      take: Number(limit),
+    }),
+  ]);
+
+  return {
+    total,
+    papers,
+  };
 };
 
 exports.getPaperById = async (id) => {
