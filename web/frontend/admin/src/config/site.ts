@@ -1,4 +1,4 @@
-import { LayoutGrid, FolderTree, FileText } from 'lucide-react';
+import { FileText, FolderTree, LayoutGrid } from 'lucide-react';
 
 export const siteConfig = {
   name: 'Prepvers',
