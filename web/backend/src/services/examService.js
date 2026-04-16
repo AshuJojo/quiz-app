@@ -173,14 +173,6 @@ exports.deleteExam = async (id) => {
     throw new Error('Exam not found');
   }
 
-  if (exam._count.children > 0) {
-    throw new Error('Cannot delete exam with sub-exams. Delete sub-exams first.');
-  }
-
-  if (exam._count.papers > 0) {
-    throw new Error('Cannot delete exam with associated papers.');
-  }
-
   return await prisma.exam.delete({
     where: { id },
   });

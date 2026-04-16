@@ -6,6 +6,7 @@ build/
 out/
 .expo/
 *.jsbundle
+prisma/migrations
 
 # Environment
 .env
