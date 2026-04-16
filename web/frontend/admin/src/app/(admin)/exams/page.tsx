@@ -147,19 +147,16 @@ export default function ExamsPage() {
         {/* Exam List Section */}
         <div className="lg:col-span-12 space-y-6">
           <div className="bg-surface-container-lowest/50 backdrop-blur-3xl rounded-2xl border border-outline-variant/10 shadow-ambient overflow-hidden">
-            {/* List Header Labels - Show only if > 10 root exams */}
-            {rootExamsCount > pageSize && (
-              <div className="grid grid-cols-[1fr_auto] items-center px-10 py-6 border-b border-outline-variant/10 bg-surface-container-low/20">
-                <div className="flex items-center gap-20">
-                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant/40">
-                    Exam Name / Dynamics
-                  </span>
-                </div>
+            <div className="grid grid-cols-[1fr_auto] items-center px-10 py-6 border-b border-outline-variant/10 bg-surface-container-low/20">
+              <div className="flex items-center gap-20">
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant/40">
-                  Actions
+                  Exam Name / Dynamics
                 </span>
               </div>
-            )}
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant/40">
+                Actions
+              </span>
+            </div>
 
             {/* Tree Content Area */}
             <div className="p-6 min-h-[60vh] relative flex flex-col justify-start">

@@ -40,7 +40,7 @@ export function ExamTree({
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2 py-2 px-4 ml-8 animate-pulse">
+      <div className="w-full h-full flex items-center justify-center gap-2 py-2 px-4 ml-8 animate-pulse">
         <Loader2 size={16} className="animate-spin text-zinc-400" />
         <span className="text-sm text-zinc-400">Loading sub-exams...</span>
       </div>
