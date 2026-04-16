@@ -106,3 +106,21 @@ exports.deletePaper = async (id) => {
     where: { id },
   });
 };
+exports.bulkDeletePapers = async (ids) => {
+  // Verify all IDs exists to provide a specific error
+  const existingCount = await prisma.paper.count({
+    where: { id: { in: ids } },
+  });
+
+  if (existingCount !== ids.length) {
+    const error = new Error('Invalid paper ids');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return await prisma.paper.deleteMany({
+    where: {
+      id: { in: ids },
+    },
+  });
+};

@@ -6,13 +6,14 @@ import { paperService } from '@/services/paper-service';
 import { PaperItem } from '@/components/features/papers/components/paper-item';
 import { PaperForm } from '@/components/features/papers/components/paper-form';
 import { Paper, CreatePaperInput, UpdatePaperInput } from '@/types/paper';
-import { FileText, Plus, Search, Loader2 } from 'lucide-react';
+import { FileText, Plus, Search, Loader2, Check } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
 export default function PapersPage() {
   const queryClient = useQueryClient();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPaper, setEditingPaper] = useState<Paper | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data: papersData, isLoading } = useQuery({
@@ -24,6 +25,9 @@ export default function PapersPage() {
   const filteredPapers = papers.filter((p: Paper) =>
     p.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const isAllSelected =
+    filteredPapers.length > 0 && filteredPapers.every((p) => selectedIds.includes(p.id!));
 
   const createMutation = useMutation({
     mutationFn: (data: CreatePaperInput) => paperService.createPaper(data),
@@ -46,6 +50,14 @@ export default function PapersPage() {
     mutationFn: (id: string) => paperService.deletePaper(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['papers'] });
+    },
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (ids: string[]) => paperService.bulkDeletePapers(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['papers'] });
+      setSelectedIds([]);
     },
   });
 
@@ -77,6 +89,30 @@ export default function PapersPage() {
       window.confirm('Are you sure you want to delete this paper? This action cannot be undone.')
     ) {
       await deleteMutation.mutateAsync(id);
+    }
+  };
+
+  const handleSelect = (id: string, selected: boolean) => {
+    setSelectedIds((prev) => (selected ? [...prev, id] : prev.filter((i) => i !== id)));
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allIds = filteredPapers.map((p) => p.id!);
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...allIds])));
+    } else {
+      const allIds = filteredPapers.map((p) => p.id!);
+      setSelectedIds((prev) => prev.filter((id) => !allIds.includes(id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (
+      window.confirm(
+        `Are you sure you want to delete ${selectedIds.length} selected papers? This action cannot be undone.`
+      )
+    ) {
+      await bulkDeleteMutation.mutateAsync(selectedIds);
     }
   };
 
@@ -134,6 +170,50 @@ export default function PapersPage() {
               </span>
             </div>
 
+            {/* Contextual Action Bar */}
+            {selectedIds.length > 0 && (
+              <div className="bg-red-500/[0.03] border-b border-outline-variant/10 px-10 py-4 flex items-center justify-between animate-in slide-in-from-top duration-300">
+                <div className="flex items-center gap-8">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className="relative flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={isAllSelected}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="peer appearance-none w-5 h-5 rounded-md border-2 border-outline-variant/50 checked:bg-primary checked:border-primary transition-all cursor-pointer ring-offset-background focus:ring-2 focus:ring-primary/20"
+                      />
+                      <Check
+                        className="absolute inset-0 m-auto text-white scale-0 peer-checked:scale-100 transition-transform pointer-events-none"
+                        size={14}
+                        strokeWidth={4}
+                      />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/60 group-hover:text-on-background transition-colors">
+                      Select All
+                    </span>
+                  </label>
+                  <div className="h-4 w-[1px] bg-outline-variant/20" />
+                  <span className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-widest">
+                    {selectedIds.length} paper{selectedIds.length > 1 ? 's' : ''} selected
+                  </span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => setSelectedIds([])}
+                    className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/40 hover:text-on-background transition-colors"
+                  >
+                    Clear Selection
+                  </button>
+                  <button
+                    onClick={handleBulkDelete}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-red-500 text-white text-[10px] font-black uppercase tracking-[0.15em] rounded-xl hover:bg-red-600 transition-all shadow-lg shadow-red-500/10 active:scale-95"
+                  >
+                    Delete Selected
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Content Area */}
             <div className="p-6 min-h-[60vh] relative flex flex-col justify-start">
               {isLoading ? (
@@ -174,6 +254,8 @@ export default function PapersPage() {
                       paper={paper}
                       onEdit={handleOpenEditForm}
                       onDelete={handleDelete}
+                      isSelected={selectedIds.includes(paper.id!)}
+                      onSelect={handleSelect}
                     />
                   ))}
                 </div>

@@ -1,33 +1,48 @@
 'use client';
 
 import { Paper } from '@/types/paper';
-import { Pencil, Trash2, Clock, FileText, Calendar, CheckCircle2, XCircle } from 'lucide-react';
+import {
+  Pencil,
+  Trash2,
+  Clock,
+  FileText,
+  Calendar,
+  CheckCircle2,
+  XCircle,
+  Check,
+} from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 
 interface PaperItemProps {
   paper: Paper;
   onEdit: (paper: Paper) => void;
   onDelete: (id: string) => void;
+  isSelected?: boolean;
+  onSelect?: (id: string, selected: boolean) => void;
 }
 
-export function PaperItem({ paper, onEdit, onDelete }: PaperItemProps) {
+export function PaperItem({
+  paper,
+  onEdit,
+  onDelete,
+  isSelected = false,
+  onSelect,
+}: PaperItemProps) {
   return (
     <div className="group relative flex items-center justify-between py-4 px-6 rounded-2xl transition-all duration-300 border border-transparent hover:bg-surface-container-lowest hover:shadow-ambient hover:border-outline-variant/20 bg-surface-container-low/40">
       <div className="flex items-center gap-6">
-        {/* Status Indicator */}
-        <div
-          className={cn(
-            'p-3 rounded-2xl ring-1 ring-inset',
-            paper.isPublished
-              ? 'bg-green-500/10 text-green-600 ring-green-600/20'
-              : 'bg-zinc-500/10 text-zinc-500 ring-zinc-500/20'
-          )}
-        >
-          {paper.isPublished ? (
-            <CheckCircle2 size={24} strokeWidth={2.5} />
-          ) : (
-            <XCircle size={24} strokeWidth={2.5} />
-          )}
+        <div className="relative flex items-center">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={(e) => onSelect?.(paper.id!, e.target.checked)}
+            className="peer appearance-none w-5 h-5 rounded-md border-2 border-outline-variant/50 checked:bg-primary checked:border-primary transition-all cursor-pointer ring-offset-background focus:ring-2 focus:ring-primary/20"
+          />
+          <Check
+            className="absolute inset-0 m-auto text-white scale-0 peer-checked:scale-100 transition-transform pointer-events-none"
+            size={14}
+            strokeWidth={4}
+          />
         </div>
 
         <div className="flex flex-col gap-1.5">

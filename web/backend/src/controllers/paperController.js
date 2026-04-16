@@ -91,3 +91,16 @@ exports.destroy = async (req, res, next) => {
     next(error);
   }
 };
+exports.bulkDestroy = async (req, res, next) => {
+  try {
+    const { ids } = req.body;
+    const result = await paperService.bulkDeletePapers(ids);
+
+    res.status(200).json({
+      success: true,
+      message: `${result.count} papers deleted successfully`,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -30,4 +30,10 @@ export const paperService = {
     const response = await axios.delete(`${API_URL}/papers/${id}`);
     return response.data;
   },
+  bulkDeletePapers: async (ids: string[]) => {
+    const response = await axios.delete(`${API_URL}/papers`, {
+      data: { ids },
+    });
+    return response.data;
+  },
 };
