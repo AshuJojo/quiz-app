@@ -17,17 +17,12 @@ export default function PapersPage() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data: papersData, isLoading } = useQuery({
-    queryKey: ['papers'],
-    queryFn: () => paperService.getPapers(),
+    queryKey: ['papers', searchQuery],
+    queryFn: () => paperService.getPapers(undefined, searchQuery),
   });
 
   const papers = Array.isArray(papersData?.data) ? papersData.data : [];
-  const filteredPapers = papers.filter((p: Paper) =>
-    p.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const isAllSelected =
-    filteredPapers.length > 0 && filteredPapers.every((p) => selectedIds.includes(p.id!));
+  const isAllSelected = papers.length > 0 && papers.every((p) => selectedIds.includes(p.id!));
 
   const createMutation = useMutation({
     mutationFn: (data: CreatePaperInput) => paperService.createPaper(data),
@@ -98,10 +93,10 @@ export default function PapersPage() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      const allIds = filteredPapers.map((p) => p.id!);
+      const allIds = papers.map((p) => p.id!);
       setSelectedIds((prev) => Array.from(new Set([...prev, ...allIds])));
     } else {
-      const allIds = filteredPapers.map((p) => p.id!);
+      const allIds = papers.map((p) => p.id!);
       setSelectedIds((prev) => prev.filter((id) => !allIds.includes(id)));
     }
   };
@@ -223,13 +218,13 @@ export default function PapersPage() {
                     Hydrating Repository...
                   </p>
                 </div>
-              ) : filteredPapers.length === 0 ? (
+              ) : papers.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in zoom-in-95 duration-500">
                   <div className="w-24 h-24 bg-surface-container rounded-[2.5rem] flex items-center justify-center mb-6 border border-outline-variant/10 shadow-inner">
                     <Search className="text-on-surface-variant/20" size={40} />
                   </div>
                   <h3 className="text-2xl font-black text-on-background tracking-tight mb-2">
-                    No Papers Found
+                    {searchQuery ? 'No Matches Found' : 'No Papers Found'}
                   </h3>
                   <p className="text-on-surface-variant/60 font-bold max-w-sm mb-10 leading-relaxed uppercase tracking-wider text-xs">
                     {searchQuery
@@ -248,7 +243,7 @@ export default function PapersPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {filteredPapers.map((paper: Paper) => (
+                  {papers.map((paper: Paper) => (
                     <PaperItem
                       key={paper.id}
                       paper={paper}

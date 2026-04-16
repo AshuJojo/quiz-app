@@ -1,7 +1,10 @@
 const prisma = require('../config/db');
 
-exports.getPapers = async (examId) => {
+exports.getPapers = async (examId, search) => {
   const where = {};
+  if (search) {
+    where.title = { contains: search, mode: 'insensitive' };
+  }
   if (examId) {
     where.examId = examId;
   }

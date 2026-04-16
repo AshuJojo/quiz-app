@@ -4,9 +4,9 @@ import { CreatePaperInput, UpdatePaperInput } from '@/types/paper';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export const paperService = {
-  getPapers: async (examId?: string) => {
+  getPapers: async (examId?: string, search?: string) => {
     const response = await axios.get(`${API_URL}/papers`, {
-      params: { examId },
+      params: { examId, search },
     });
     return response.data;
   },
