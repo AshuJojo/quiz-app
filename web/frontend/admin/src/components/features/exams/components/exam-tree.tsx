@@ -14,6 +14,8 @@ interface ExamTreeProps {
   onEdit: (cat: Exam) => void;
   onDelete: (id: string) => void;
   onAddChild: (parentId: string) => void;
+  selectedIds?: string[];
+  onSelect?: (id: string, selected: boolean) => void;
 }
 
 export function ExamTree({
@@ -24,6 +26,8 @@ export function ExamTree({
   onEdit,
   onDelete,
   onAddChild,
+  selectedIds = [],
+  onSelect,
 }: ExamTreeProps) {
   // If we are root, we paginate. If we are sub-exam, we fetch all.
   const queryLimit = parentId === null ? limit : 'all';
@@ -59,6 +63,8 @@ export function ExamTree({
           onEdit={onEdit}
           onDelete={onDelete}
           onAddChild={onAddChild}
+          isSelected={selectedIds.includes(exam.id)}
+          onSelect={onSelect}
         >
           {exam._count?.children ? (
             <ExamTree
@@ -67,6 +73,8 @@ export function ExamTree({
               onEdit={onEdit}
               onDelete={onDelete}
               onAddChild={onAddChild}
+              selectedIds={selectedIds}
+              onSelect={onSelect}
             />
           ) : null}
         </ExamItem>

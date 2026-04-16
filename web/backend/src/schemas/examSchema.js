@@ -28,3 +28,11 @@ exports.examIdParamsSchema = z.object({
     id: z.string().uuid({ message: 'Invalid exam ID' }),
   }),
 });
+
+exports.bulkDeleteExamSchema = z.object({
+  body: z.object({
+    ids: z.array(z.string().uuid({ message: 'Invalid exam ID in list' })).min(1, {
+      message: 'At least one exam ID must be provided',
+    }),
+  }),
+});

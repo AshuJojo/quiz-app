@@ -177,3 +177,22 @@ exports.deleteExam = async (id) => {
     where: { id },
   });
 };
+
+exports.bulkDeleteExams = async (ids) => {
+  // Verify all IDs exists to provide a specific error
+  const existingCount = await prisma.exam.count({
+    where: { id: { in: ids } },
+  });
+
+  if (existingCount !== ids.length) {
+    const error = new Error('Invalid exam ids');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return await prisma.exam.deleteMany({
+    where: {
+      id: { in: ids },
+    },
+  });
+};

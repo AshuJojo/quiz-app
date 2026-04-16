@@ -45,4 +45,10 @@ export const examService = {
     const response = await axios.delete(`${API_URL}/exams/${id}`);
     return response.data;
   },
+  bulkDeleteExams: async (ids: string[]) => {
+    const response = await axios.delete(`${API_URL}/exams`, {
+      data: { ids },
+    });
+    return response.data;
+  },
 };

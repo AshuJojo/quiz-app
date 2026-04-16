@@ -11,6 +11,8 @@ interface ExamItemProps {
   onEdit: (cat: Exam) => void;
   onDelete: (id: string) => void;
   onAddChild: (parentId: string) => void;
+  isSelected?: boolean;
+  onSelect?: (id: string, selected: boolean) => void;
   children?: React.ReactNode;
 }
 
@@ -20,6 +22,8 @@ export function ExamItem({
   onEdit,
   onDelete,
   onAddChild,
+  isSelected = false,
+  onSelect,
   children,
 }: ExamItemProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -30,16 +34,26 @@ export function ExamItem({
       <div
         className={cn(
           'group relative flex items-center justify-between py-4 px-6 rounded-2xl transition-all duration-300 border border-transparent',
-          'hover:bg-surface-container-lowest hover:shadow-ambient hover:border-outline-variant/20 bg-surface-container-low/40'
+          'hover:bg-surface-container-lowest hover:shadow-ambient hover:border-outline-variant/20 bg-surface-container-low/40',
+          isSelected && 'bg-primary/5 border-primary/20 shadow-ambient'
         )}
         style={{ marginLeft: `${level * 2}rem` }}
       >
-        <div className="flex items-center">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={(e) => onSelect?.(exam.id!, e.target.checked)}
+              className="w-4 h-4 rounded border-outline-variant text-primary focus:ring-primary/20 accent-primary cursor-pointer"
+            />
+          </div>
+
           {hasChildren && (
             <button
               onClick={() => setIsExpanded(!isExpanded)}
               className={cn(
-                'p-1.5 rounded-lg transition-all duration-200 hover:bg-surface-container mr-3',
+                'p-1.5 rounded-lg transition-all duration-200 hover:bg-surface-container',
                 isExpanded ? 'text-primary rotate-0' : 'text-on-surface-variant -rotate-90'
               )}
             >

@@ -112,3 +112,17 @@ exports.destroy = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.bulkDestroy = async (req, res, next) => {
+  try {
+    const { ids } = req.body;
+    const result = await examService.bulkDeleteExams(ids);
+
+    res.status(200).json({
+      success: true,
+      message: `${result.count} exams deleted successfully`,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

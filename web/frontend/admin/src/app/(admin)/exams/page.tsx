@@ -15,6 +15,7 @@ export default function ExamsPage() {
   const [editingExam, setEditingExam] = useState<Exam | null>(null);
   const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const pageSize = 10;
 
   // Fetch root exams for count-based logic and empty state
@@ -48,6 +49,15 @@ export default function ExamsPage() {
     mutationFn: (id: string) => examService.deleteExam(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exams'] });
+      setSelectedIds((prev) => prev.filter((selectedId) => selectedId !== editingExam?.id));
+    },
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (ids: string[]) => examService.bulkDeleteExams(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['exams'] });
+      setSelectedIds([]);
     },
   });
 
@@ -85,6 +95,20 @@ export default function ExamsPage() {
     }
   };
 
+  const handleSelect = (id: string, selected: boolean) => {
+    setSelectedIds((prev) => (selected ? [...prev, id] : prev.filter((i) => i !== id)));
+  };
+
+  const handleBulkDelete = async () => {
+    if (
+      window.confirm(
+        `Are you sure you want to delete ${selectedIds.length} selected exams and their sub-exams?`
+      )
+    ) {
+      await bulkDeleteMutation.mutateAsync(selectedIds);
+    }
+  };
+
   return (
     <div className="p-8 max-w-[1600px] mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Header Section */}
@@ -98,13 +122,24 @@ export default function ExamsPage() {
           </div>
         </div>
 
-        <button
-          onClick={() => handleOpenCreateForm(null)}
-          className="flex items-center justify-center gap-3 px-10 py-5 bg-primary text-white font-black rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/20 ring-1 ring-primary/20"
-        >
-          <Plus size={24} strokeWidth={3} />
-          Create Exam
-        </button>
+        <div className="flex items-center gap-4">
+          {selectedIds.length > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              className="flex items-center justify-center gap-3 px-8 py-5 bg-red-500/10 text-red-500 font-black rounded-2xl hover:bg-red-500 hover:text-white transition-all shadow-lg active:scale-95"
+            >
+              Delete Selected ({selectedIds.length})
+            </button>
+          )}
+
+          <button
+            onClick={() => handleOpenCreateForm(null)}
+            className="flex items-center justify-center gap-3 px-10 py-5 bg-primary text-white font-black rounded-2xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/20 ring-1 ring-primary/20"
+          >
+            <Plus size={24} strokeWidth={3} />
+            Create Exam
+          </button>
+        </div>
       </header>
 
       {/* Main Layout Grid */}
@@ -157,6 +192,8 @@ export default function ExamsPage() {
                     onEdit={handleOpenEditForm}
                     onDelete={handleDelete}
                     onAddChild={handleOpenCreateForm}
+                    selectedIds={selectedIds}
+                    onSelect={handleSelect}
                   />
                 </div>
               )}
