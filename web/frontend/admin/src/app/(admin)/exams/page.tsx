@@ -172,7 +172,7 @@ export default function ExamsPage() {
         {/* Exam List Section */}
         <div className="lg:col-span-12 space-y-6">
           <DataTable
-            headers={['Exam Name / Dynamics']}
+            headers={['Exam Name']}
             selectedCount={selectedIds.length}
             totalCount={rootExamsCount}
             isAllSelected={isAllSelected}
