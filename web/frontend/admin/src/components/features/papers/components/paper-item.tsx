@@ -69,7 +69,7 @@ export function PaperItem({
         <div className="flex items-center gap-5">
           <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant/70">
             <FileText className="w-3.5 h-3.5 text-primary/60" />
-            {paper.totalQuestions} Questions
+            {paper._count?.questions ?? 0} Questions
           </span>
           <span className="w-1 h-1 rounded-full bg-outline-variant/40" />
           <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant/70">

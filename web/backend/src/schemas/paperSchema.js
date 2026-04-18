@@ -4,10 +4,13 @@ exports.createPaperSchema = z.object({
   body: z.object({
     title: z.string().min(2, { message: 'Title must be at least 2 characters' }),
     examId: z.string().uuid({ message: 'Invalid exam ID' }).optional().nullable(),
-    totalQuestions: z
+    positiveMarks: z
       .number()
-      .int()
-      .nonnegative({ message: 'Total questions must be a non-negative integer' })
+      .nonnegative({ message: 'Positive marks must be non-negative' })
+      .optional(),
+    negativeMarks: z
+      .number()
+      .nonnegative({ message: 'Negative marks must be non-negative' })
       .optional(),
     duration: z
       .number()
@@ -27,10 +30,13 @@ exports.updatePaperSchema = z.object({
     .object({
       title: z.string().min(2, { message: 'Title must be at least 2 characters' }).optional(),
       examId: z.string().uuid({ message: 'Invalid exam ID' }).optional().nullable(),
-      totalQuestions: z
+      positiveMarks: z
         .number()
-        .int()
-        .nonnegative({ message: 'Total questions must be a non-negative integer' })
+        .nonnegative({ message: 'Positive marks must be non-negative' })
+        .optional(),
+      negativeMarks: z
+        .number()
+        .nonnegative({ message: 'Negative marks must be non-negative' })
         .optional(),
       duration: z
         .number()
