@@ -21,6 +21,7 @@ export interface Paper {
   exam: {
     name: string;
     slug: string;
+    fullPath?: string;
   };
   _count?: {
     questions: number;

@@ -10,6 +10,31 @@ const slugify = (text) => {
     .replace(/\-\-+/g, '-'); // Replace multiple - with single -
 };
 
+const getExamPath = async (examId, cache = new Map()) => {
+  if (!examId) return '';
+  if (cache.has(examId)) return cache.get(examId);
+
+  const exam = await prisma.exam.findUnique({
+    where: { id: examId },
+    select: { name: true, parentId: true },
+  });
+
+  if (!exam) return '';
+
+  let path = exam.name;
+  if (exam.parentId) {
+    const parentPath = await getExamPath(exam.parentId, cache);
+    if (parentPath) {
+      path = `${parentPath} / ${exam.name}`;
+    }
+  }
+
+  cache.set(examId, path);
+  return path;
+};
+
+exports.getExamPath = getExamPath;
+
 exports.getExams = async (parentId, page, limit, search) => {
   const where = {};
 
@@ -49,8 +74,15 @@ exports.getExams = async (parentId, page, limit, search) => {
     prisma.exam.count({ where }),
   ]);
 
+  const enrichedData = await Promise.all(
+    data.map(async (exam) => ({
+      ...exam,
+      fullPath: await getExamPath(exam.id),
+    }))
+  );
+
   return {
-    data,
+    data: enrichedData,
     total,
     page: isAll ? 1 : p,
     limit: isAll ? total : l,
@@ -58,7 +90,7 @@ exports.getExams = async (parentId, page, limit, search) => {
 };
 
 exports.getExamById = async (id) => {
-  return await prisma.exam.findUnique({
+  const exam = await prisma.exam.findUnique({
     where: { id },
     include: {
       children: {
@@ -73,6 +105,13 @@ exports.getExamById = async (id) => {
       },
     },
   });
+
+  if (!exam) return null;
+
+  return {
+    ...exam,
+    fullPath: await getExamPath(id),
+  };
 };
 
 exports.createExam = async (data) => {

@@ -1,4 +1,5 @@
 const prisma = require('../config/db');
+const { getExamPath } = require('./examService');
 
 exports.getPapers = async (examId, search, page = 1, limit = 10) => {
   const skip = (page - 1) * limit;
@@ -35,14 +36,28 @@ exports.getPapers = async (examId, search, page = 1, limit = 10) => {
     }),
   ]);
 
+  const enrichedPapers = await Promise.all(
+    papers.map(async (paper) => {
+      if (!paper.examId) return paper;
+      const fullPath = await getExamPath(paper.examId);
+      return {
+        ...paper,
+        exam: {
+          ...paper.exam,
+          fullPath,
+        },
+      };
+    })
+  );
+
   return {
     total,
-    papers,
+    papers: enrichedPapers,
   };
 };
 
 exports.getPaperById = async (id) => {
-  return await prisma.paper.findUnique({
+  const paper = await prisma.paper.findUnique({
     where: { id },
     include: {
       exam: {
@@ -58,6 +73,16 @@ exports.getPaperById = async (id) => {
       },
     },
   });
+
+  if (!paper || !paper.examId) return paper;
+
+  return {
+    ...paper,
+    exam: {
+      ...paper.exam,
+      fullPath: await getExamPath(paper.examId),
+    },
+  };
 };
 
 exports.createPaper = async (data) => {

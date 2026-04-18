@@ -1,10 +1,14 @@
 'use client';
 
+import { HierarchicalSelect } from '@/components/shared/hierarchical-select/hierarchical-select';
 import { cn } from '@/lib/utils/cn';
+import { examService } from '@/services/exam-service';
 import { CreatePaperInput, Paper, PaperSchema } from '@/types/paper';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQuery } from '@tanstack/react-query';
 import { Loader2, X } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { useCallback, useMemo } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 
 interface PaperFormProps {
   initialData?: Partial<Paper>;
@@ -14,7 +18,34 @@ interface PaperFormProps {
 }
 
 export function PaperForm({ initialData, onSubmit, onClose, isLoading }: PaperFormProps) {
+  const { data: examsData, isLoading: isLoadingExams } = useQuery({
+    queryKey: ['exams', 'root', 1, 'all'],
+    queryFn: () => examService.getExams(null, 1, 'all'),
+  });
+
+  const mapToTreeItem = useCallback(
+    (exam: any) => ({
+      id: exam.id,
+      name: exam.name,
+      hasChildren: (exam._count?.children || 0) > 0,
+    }),
+    []
+  );
+
+  const exams = useMemo(() => {
+    return Array.isArray(examsData?.data) ? examsData.data.map(mapToTreeItem) : [];
+  }, [examsData, mapToTreeItem]);
+
+  const handleFetchChildren = useCallback(
+    async (parentId: string) => {
+      const result = await examService.getExams(parentId, 1, 'all');
+      return (result?.data || []).map(mapToTreeItem);
+    },
+    [mapToTreeItem]
+  );
+
   const {
+    control,
     register,
     handleSubmit,
     formState: { errors },
@@ -22,11 +53,7 @@ export function PaperForm({ initialData, onSubmit, onClose, isLoading }: PaperFo
     resolver: zodResolver(PaperSchema),
     defaultValues: {
       title: initialData?.title || '',
-      examId: initialData?.examId || null,
-      totalQuestions: initialData?.totalQuestions || 0,
-      duration: initialData?.duration || 0,
-      year: initialData?.year || null,
-      isPublished: initialData?.isPublished || false,
+      examId: initialData?.examId || '',
     },
   });
 
@@ -56,7 +83,39 @@ export function PaperForm({ initialData, onSubmit, onClose, isLoading }: PaperFo
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-8 space-y-4 relative">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="p-8 space-y-6 relative max-h-[70vh] overflow-y-auto"
+        >
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-black text-on-surface uppercase tracking-widest ml-1">
+              Select Exam
+            </label>
+            <Controller
+              name="examId"
+              control={control}
+              render={({ field }) => (
+                <HierarchicalSelect
+                  value={field.value}
+                  onChange={field.onChange}
+                  onFetchChildren={handleFetchChildren}
+                  initialData={exams}
+                  isLoadingInitial={isLoadingExams}
+                  selectedLabel={initialData?.exam?.fullPath || initialData?.exam?.name}
+                  error={errors.examId?.message}
+                  placeholder="Choose category..."
+                />
+              )}
+            />
+            {errors.examId && (
+              <div className="flex items-center gap-2 mt-2 ml-1 text-red-600 animate-in slide-in-from-left-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-600" />
+                <p className="text-xs font-black uppercase tracking-wider">
+                  {errors.examId.message}
+                </p>
+              </div>
+            )}
+          </div>
           <div className="flex flex-col gap-2">
             <label className="text-sm font-black text-on-surface uppercase tracking-widest ml-1">
               Paper Name

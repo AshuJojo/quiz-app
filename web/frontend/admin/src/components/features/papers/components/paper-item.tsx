@@ -45,8 +45,11 @@ export function PaperItem({
           <h3 className="text-[17px] font-black tracking-tight text-on-background group-hover:text-primary transition-colors">
             {paper.title}
           </h3>
-          <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest">
-            {paper.exam?.name || 'Unassigned'}
+          <span
+            className="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest truncate max-w-[200px]"
+            title={paper.exam?.fullPath || paper.exam?.name}
+          >
+            {paper.exam?.fullPath || paper.exam?.name || 'Unassigned'}
           </span>
         </div>
 
