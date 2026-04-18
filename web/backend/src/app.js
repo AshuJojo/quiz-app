@@ -4,6 +4,8 @@ const cors = require('cors');
 const userRoutes = require('./routes/userRoutes');
 const examRoutes = require('./routes/examRoutes');
 const paperRoutes = require('./routes/paperRoutes');
+const sectionRoutes = require('./routes/sectionRoutes');
+const questionRoutes = require('./routes/questionRoutes');
 const { errorHandler } = require('./middlewares/errorHandler');
 
 const app = express();
@@ -22,6 +24,8 @@ app.get('/', (req, res) => {
 app.use('/api/users', userRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/papers', paperRoutes);
+app.use('/api/sections', sectionRoutes);
+app.use('/api/questions', questionRoutes);
 
 // Error Handling (Must be last)
 app.use(errorHandler);

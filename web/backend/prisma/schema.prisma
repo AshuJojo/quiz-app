@@ -27,27 +27,53 @@ model Exam {
 }
 
 model Paper {
-  id             String     @id @default(uuid())
-  title          String
-  examId         String?
-  exam           Exam?      @relation(fields: [examId], references: [id], onDelete: SetNull)
-  questions      Question[]
-  totalQuestions Int        @default(0)
-  duration       Int        @default(0)
-  year           Int?
-  isPublished    Boolean    @default(false)
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  id            String     @id @default(uuid())
+  title         String
+  examId        String?
+  exam          Exam?      @relation(fields: [examId], references: [id], onDelete: SetNull)
+  sections      Section[]
+  questions     Question[]
+  positiveMarks Float      @default(1)
+  negativeMarks Float      @default(0)
+  duration      Int        @default(0)
+  year          Int?
+  isPublished   Boolean    @default(false)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+model Section {
+  id            String     @id @default(uuid())
+  title         String
+  order         Int        @default(0)
+  isDefault     Boolean    @default(false)
+  positiveMarks Float?
+  negativeMarks Float?
+  paperId       String
+  paper         Paper      @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  questions     Question[]
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([paperId])
 }
 
 model Question {
-  id                  String   @id @default(uuid())
-  paperId             String
-  paper               Paper    @relation(fields: [paperId], references: [id], onDelete: Cascade)
-  questionText        String
-  options             String[] // Array of 4 options
-  correctOptionIndex  Int
-  explanation         String?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                 String   @id @default(uuid())
+  paperId            String
+  paper              Paper    @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  sectionId          String
+  section            Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  order              Int      @default(0)
+  questionText       String
+  options            String[] // Array of 4 options
+  correctOptionIndex Int
+  explanation        String?
+  positiveMarks      Float?
+  negativeMarks      Float?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([sectionId])
+  @@index([paperId])
 }

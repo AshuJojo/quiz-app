@@ -96,9 +96,18 @@ exports.createPaper = async (data) => {
     }
   }
 
-  return await prisma.paper.create({
-    data,
+  // Create the paper, then auto-create the default Uncategorized section
+  const paper = await prisma.paper.create({ data });
+  await prisma.section.create({
+    data: {
+      title: 'Uncategorized',
+      isDefault: true,
+      order: 0,
+      paperId: paper.id,
+    },
   });
+
+  return paper;
 };
 
 exports.updatePaper = async (id, data) => {
