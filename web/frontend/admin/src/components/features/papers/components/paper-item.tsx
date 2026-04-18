@@ -3,6 +3,7 @@
 import { Paper } from '@/types/paper';
 import { Calendar, Clock, FileText, Pencil, Trash2 } from 'lucide-react';
 import { DataTableItem } from '@/components/shared/data-table/data-table-item';
+import { useRouter } from 'next/navigation';
 
 interface PaperItemProps {
   paper: Paper;
@@ -19,6 +20,12 @@ export function PaperItem({
   isSelected = false,
   onSelect,
 }: PaperItemProps) {
+  const router = useRouter();
+
+  const handleRowClick = () => {
+    router.push(`/papers/${paper.id}`);
+  };
+
   const actions = (
     <>
       <button
@@ -39,7 +46,13 @@ export function PaperItem({
   );
 
   return (
-    <DataTableItem id={paper.id} isSelected={isSelected} onSelect={onSelect} actions={actions}>
+    <DataTableItem
+      id={paper.id}
+      isSelected={isSelected}
+      onSelect={onSelect}
+      actions={actions}
+      onClick={handleRowClick}
+    >
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-3">
           <h3 className="text-[17px] font-black tracking-tight text-on-background group-hover:text-primary transition-colors">

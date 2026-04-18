@@ -48,3 +48,23 @@ h5,
 h6 {
   font-family: var(--font-manrope), sans-serif;
 }
+
+@layer utilities {
+  .dot-pattern {
+    background-image: radial-gradient(var(--outline-variant) 1px, transparent 1px);
+    background-size: 24px 24px;
+    background-position: center;
+    opacity: 0.15;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 2px;
+  }
+}

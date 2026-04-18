@@ -13,6 +13,7 @@ interface DataTableItemProps {
   level?: number;
   className?: string;
   style?: React.CSSProperties;
+  onClick?: () => void;
 }
 
 export function DataTableItem({
@@ -24,13 +25,16 @@ export function DataTableItem({
   level = 0,
   className,
   style,
+  onClick,
 }: DataTableItemProps) {
   return (
     <div
+      onClick={onClick}
       className={cn(
         'group relative flex items-center justify-between py-4 px-10 rounded-2xl transition-all duration-300 border border-transparent',
         'hover:bg-surface-container-lowest hover:shadow-ambient hover:border-outline-variant/20 bg-surface-container-low/40',
         isSelected && 'bg-primary/5 border-primary/20 shadow-ambient',
+        onClick && 'cursor-pointer active:scale-[0.99]',
         className
       )}
       style={{
@@ -40,7 +44,10 @@ export function DataTableItem({
     >
       <div className="flex items-center gap-6 overflow-hidden">
         {onSelect && id && (
-          <div className="relative flex items-center flex-shrink-0">
+          <div
+            className="relative flex items-center flex-shrink-0"
+            onClick={(e) => e.stopPropagation()}
+          >
             <input
               type="checkbox"
               checked={isSelected}
@@ -58,7 +65,10 @@ export function DataTableItem({
         <div className="flex-1 min-w-0">{children}</div>
       </div>
 
-      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0 ml-4 flex-shrink-0">
+      <div
+        className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0 ml-4 flex-shrink-0"
+        onClick={(e) => e.stopPropagation()}
+      >
         {actions}
       </div>
     </div>
