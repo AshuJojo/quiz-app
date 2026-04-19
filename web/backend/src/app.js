@@ -6,6 +6,7 @@ const examRoutes = require('./routes/examRoutes');
 const paperRoutes = require('./routes/paperRoutes');
 const sectionRoutes = require('./routes/sectionRoutes');
 const questionRoutes = require('./routes/questionRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
 const { errorHandler } = require('./middlewares/errorHandler');
 
 const app = express();
@@ -26,6 +27,7 @@ app.use('/api/exams', examRoutes);
 app.use('/api/papers', paperRoutes);
 app.use('/api/sections', sectionRoutes);
 app.use('/api/questions', questionRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Error Handling (Must be last)
 app.use(errorHandler);

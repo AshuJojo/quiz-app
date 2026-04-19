@@ -54,17 +54,59 @@ h6 {
     background-image: radial-gradient(var(--outline-variant) 1px, transparent 1px);
     background-size: 24px 24px;
     background-position: center;
-    opacity: 0.15;
   }
 
   .custom-scrollbar::-webkit-scrollbar {
     width: 4px;
   }
+
   .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
   }
+
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: rgba(0, 0, 0, 0.05);
     border-radius: 2px;
+  }
+
+  /* Editor.js Premium Styling */
+  .editorjs-container .ce-block__content {
+    max-width: 100%;
+  }
+
+  .editorjs-container .ce-toolbar__content {
+    max-width: 100%;
+  }
+
+  .editorjs-container .codex-editor__redactor {
+    padding-bottom: 0 !important;
+  }
+
+  .editorjs-container .ce-paragraph {
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+  }
+
+  .editorjs-container .ce-image__image img {
+    border-radius: 1.5rem;
+    box-shadow: var(--shadow-ambient);
+    margin: 1.5rem 0;
+  }
+
+  /* Robust Fix for Editor.js UI Stacking */
+  .ce-popover,
+  .ce-settings,
+  .ce-toolbar,
+  .ce-inline-toolbar,
+  .tc-popover {
+    z-index: 1000 !important;
+    pointer-events: all !important;
+  }
+
+  .ce-toolbar__content,
+  .ce-toolbar__plus,
+  .ce-toolbar__settings {
+    z-index: 1001 !important;
   }
 }
