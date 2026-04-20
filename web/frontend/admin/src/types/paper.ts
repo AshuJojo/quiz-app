@@ -11,6 +11,34 @@ export const PaperSchema = z.object({
   isPublished: z.boolean().default(false),
 });
 
+export interface Section {
+  id: string;
+  title: string;
+  order: number;
+  isDefault: boolean;
+  positiveMarks?: number | null;
+  negativeMarks?: number | null;
+  paperId: string;
+  questions?: Question[];
+  _count?: {
+    questions: number;
+  };
+}
+
+export interface Question {
+  id: string;
+  content: any;
+  options: any[];
+  correctAnswer?: any;
+  positiveMarks?: number | null;
+  negativeMarks?: number | null;
+  order: number;
+  sectionId: string;
+  paperId: string;
+  effectivePositiveMarks?: number;
+  effectiveNegativeMarks?: number;
+}
+
 export interface Paper {
   id: string;
   title: string;
@@ -25,6 +53,7 @@ export interface Paper {
     slug: string;
     fullPath?: string;
   };
+  sections?: Section[];
   _count?: {
     questions: number;
   };

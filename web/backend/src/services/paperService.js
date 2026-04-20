@@ -66,6 +66,14 @@ exports.getPaperById = async (id) => {
           slug: true,
         },
       },
+      sections: {
+        include: {
+          questions: {
+            orderBy: { order: 'asc' },
+          },
+        },
+        orderBy: { order: 'asc' },
+      },
       _count: {
         select: {
           questions: true,
@@ -74,15 +82,20 @@ exports.getPaperById = async (id) => {
     },
   });
 
-  if (!paper || !paper.examId) return paper;
+  if (!paper) return null;
 
-  return {
+  const result = {
     ...paper,
-    exam: {
+  };
+
+  if (paper.examId) {
+    result.exam = {
       ...paper.exam,
       fullPath: await getExamPath(paper.examId),
-    },
-  };
+    };
+  }
+
+  return result;
 };
 
 exports.createPaper = async (data) => {

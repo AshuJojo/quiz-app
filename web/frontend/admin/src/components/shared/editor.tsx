@@ -18,9 +18,11 @@ export default function Editor({
 }: EditorProps) {
   const ejInstance = useRef<EditorJS | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isInitializing = useRef(false);
 
   useEffect(() => {
-    if (ejInstance.current === null && containerRef.current) {
+    if (ejInstance.current === null && containerRef.current && !isInitializing.current) {
+      isInitializing.current = true;
       initEditor();
     }
 
@@ -29,6 +31,7 @@ export default function Editor({
         ejInstance.current.destroy();
         ejInstance.current = null;
       }
+      isInitializing.current = false;
     };
   }, []);
 
