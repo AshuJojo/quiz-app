@@ -4,6 +4,8 @@ export const PaperSchema = z.object({
   id: z.string().optional(),
   title: z.string().min(2, 'Title must be at least 2 characters'),
   examId: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
+  hasSections: z.boolean().default(true),
   positiveMarks: z.coerce.number().nonnegative().optional().default(1),
   negativeMarks: z.coerce.number().nonnegative().optional().default(0),
   duration: z.coerce.number().nonnegative().optional().default(0),
@@ -30,6 +32,7 @@ export interface Question {
   content: any;
   options: any[];
   correctAnswer?: any;
+  explanation?: string | null;
   positiveMarks?: number | null;
   negativeMarks?: number | null;
   order: number;
@@ -43,6 +46,8 @@ export interface Paper {
   id: string;
   title: string;
   examId: string;
+  description?: string | null;
+  hasSections: boolean;
   positiveMarks: number;
   negativeMarks: number;
   duration: number;

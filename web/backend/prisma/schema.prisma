@@ -29,6 +29,8 @@ model Exam {
 model Paper {
   id            String     @id @default(uuid())
   title         String
+  description   String?
+  hasSections   Boolean    @default(true)
   examId        String?
   exam          Exam?      @relation(fields: [examId], references: [id], onDelete: SetNull)
   sections      Section[]
