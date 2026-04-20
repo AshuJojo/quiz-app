@@ -36,59 +36,84 @@ export default function Editor({
   }, []);
 
   const initEditor = async () => {
-    // Import tools dynamically to avoid SSR issues
-    const Paragraph = (await import('@editorjs/paragraph')).default;
-    const ImageTool = (await import('@editorjs/image')).default;
+    // Capture the current container to use throughout the async process
+    const container = containerRef.current;
+    if (!container) return;
 
-    const editor = new EditorJS({
-      holder: containerRef.current!,
-      data: data,
-      placeholder: placeholder,
-      minHeight: minHeight,
-      tools: {
-        paragraph: {
-          class: Paragraph,
-          inlineToolbar: true,
-        },
-        image: {
-          class: ImageTool,
-          config: {
-            uploader: {
-              uploadByFile: async (file: File) => {
-                const formData = new FormData();
-                formData.append('image', file);
+    try {
+      // Import tools dynamically to avoid SSR issues
+      const [Paragraph, ImageTool] = await Promise.all([
+        import('@editorjs/paragraph').then((m) => m.default),
+        import('@editorjs/image').then((m) => m.default),
+      ]);
 
-                try {
-                  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/upload/image`, {
-                    method: 'POST',
-                    body: formData,
-                  });
+      // SAFETY CHECK: After async imports, check if:
+      // 1. The component is still mounting (ejInstance.current is still null)
+      // 2. The container is still the same/exists
+      // 3. isInitializing is still true (meaning cleanup hasn't run)
+      if (ejInstance.current || !containerRef.current || !isInitializing.current) {
+        return;
+      }
 
-                  if (!response.ok) {
-                    throw new Error(`Upload failed with status ${response.status}`);
+      const editor = new EditorJS({
+        holder: container,
+        data: data,
+        placeholder: placeholder,
+        minHeight: minHeight,
+        tools: {
+          paragraph: {
+            class: Paragraph,
+            inlineToolbar: true,
+          },
+          image: {
+            class: ImageTool,
+            config: {
+              uploader: {
+                uploadByFile: async (file: File) => {
+                  const formData = new FormData();
+                  formData.append('image', file);
+
+                  try {
+                    const response = await fetch(
+                      `${process.env.NEXT_PUBLIC_API_URL}/upload/image`,
+                      {
+                        method: 'POST',
+                        body: formData,
+                      }
+                    );
+
+                    if (!response.ok) {
+                      throw new Error(`Upload failed with status ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    return result;
+                  } catch (error) {
+                    console.error('Editor.js Image Upload Error:', error);
+                    return {
+                      success: 0,
+                      message: error instanceof Error ? error.message : 'Upload failed',
+                    };
                   }
-
-                  const result = await response.json();
-                  return result;
-                } catch (error) {
-                  console.error('Editor.js Image Upload Error:', error);
-                  return {
-                    success: 0,
-                    message: error instanceof Error ? error.message : 'Upload failed',
-                  };
-                }
+                },
               },
             },
           },
         },
-      },
-      onChange: async () => {
-        const savedData = await editor.save();
-        onChange(savedData);
-      },
-    });
+        onChange: async () => {
+          // Verify instance still exists before saving
+          if (ejInstance.current) {
+            const savedData = await ejInstance.current.save();
+            onChange(savedData);
+          }
+        },
+      });
 
-    ejInstance.current = editor;
+      ejInstance.current = editor;
+    } catch (error) {
+      console.error('Failed to initialize Editor.js:', error);
+      isInitializing.current = false;
+    }
   };
 
   return <div ref={containerRef} className="prose prose-sm max-w-none editorjs-container" />;
