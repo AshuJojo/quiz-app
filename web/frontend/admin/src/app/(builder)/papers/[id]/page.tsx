@@ -7,7 +7,9 @@ import { Option, Question, Section } from '@/types/paper';
 import { OutputData } from '@editorjs/editorjs';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  AlertCircle,
   Calendar,
+  CheckCircle2,
   ChevronDown,
   ChevronRight,
   Circle,
@@ -18,6 +20,7 @@ import {
   GripVertical,
   Layers,
   LayoutGrid,
+  MessageSquare,
   Plus,
   Rocket,
   Settings2,
@@ -177,6 +180,24 @@ export default function PaperBuilderPage() {
     () => localSections.flatMap((s) => s.questions || []),
     [localSections]
   );
+
+  // Question Specific Settings (Mock State)
+  const [questionExplanation, setQuestionExplanation] = useState('');
+  const [questionPositiveMarks, setQuestionPositiveMarks] = useState<number | null>(null);
+  const [questionNegativeMarks, setQuestionNegativeMarks] = useState<number | null>(null);
+
+  // Sync Question State
+  useEffect(() => {
+    if (activeQuestionId) {
+      const activeQuestion = allQuestions.find((q) => q.id === activeQuestionId);
+      if (activeQuestion) {
+        // For now using mock local state, but this would map to question properties
+        setQuestionExplanation((activeQuestion as any).explanation || '');
+        setQuestionPositiveMarks((activeQuestion as any).positiveMarks || null);
+        setQuestionNegativeMarks((activeQuestion as any).negativeMarks || null);
+      }
+    }
+  }, [activeQuestionId, allQuestions]);
 
   const activeQuestionIndex = useMemo(
     () => allQuestions.findIndex((q) => q.id === activeQuestionId),
@@ -933,14 +954,91 @@ export default function PaperBuilderPage() {
 
           <div className="flex-1 overflow-y-auto custom-scrollbar">
             {sidebarTab === 'quiz' ? (
-              <div className="p-8 flex flex-col items-center justify-center h-full text-center space-y-4 opacity-20 group">
-                <div className="w-16 h-16 rounded-3xl bg-surface-container-high flex items-center justify-center transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3">
-                  <LayoutGrid size={32} />
-                </div>
-                <div>
-                  <p className="text-[11px] font-black uppercase tracking-widest">Quiz Workspace</p>
-                  <p className="text-[10px] mt-1 italic font-medium">Coming Soon</p>
-                </div>
+              <div className="p-6 space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+                {/* Explanation Section */}
+                <section className="space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-1 h-4 bg-primary rounded-full" />
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant/80">
+                      Solution & Explanation
+                    </h3>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/40 ml-1">
+                      Explanation (Optional)
+                    </label>
+                    <div className="relative group">
+                      <div className="absolute left-4 top-4 text-on-surface-variant/30 group-focus-within:text-primary transition-colors">
+                        <MessageSquare size={16} />
+                      </div>
+                      <textarea
+                        value={questionExplanation}
+                        onChange={(e) => setQuestionExplanation(e.target.value)}
+                        placeholder="Explain the correct answer logic..."
+                        rows={6}
+                        className="w-full bg-surface-container-lowest border border-outline-variant/10 rounded-2xl p-3.5 pl-12 text-sm text-on-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none custom-scrollbar"
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                {/* Individual Scoring Section */}
+                <section className="space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-1 h-4 bg-primary rounded-full" />
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant/80">
+                      Individual Scoring
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/40 ml-1">
+                        + Marks
+                      </label>
+                      <div className="relative group">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/30 group-focus-within:text-primary transition-colors">
+                          <CheckCircle2 size={16} />
+                        </div>
+                        <input
+                          type="number"
+                          value={questionPositiveMarks || ''}
+                          onChange={(e) =>
+                            setQuestionPositiveMarks(e.target.value ? Number(e.target.value) : null)
+                          }
+                          placeholder="Default"
+                          className="w-full bg-surface-container-lowest border border-outline-variant/10 rounded-2xl p-3.5 pl-12 text-sm text-on-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/40 ml-1">
+                        - Marks
+                      </label>
+                      <div className="relative group">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/30 group-focus-within:text-primary transition-colors">
+                          <AlertCircle size={16} />
+                        </div>
+                        <input
+                          type="number"
+                          value={questionNegativeMarks || ''}
+                          onChange={(e) =>
+                            setQuestionNegativeMarks(e.target.value ? Number(e.target.value) : null)
+                          }
+                          placeholder="Default"
+                          className="w-full bg-surface-container-lowest border border-outline-variant/10 rounded-2xl p-3.5 pl-12 text-sm text-on-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-[9px] text-on-surface-variant/40 italic px-1">
+                    * Leave empty to inherit the paper&apos;s default values.
+                  </p>
+                </section>
+
+                <div className="pt-4" />
               </div>
             ) : (
               <div className="p-6 space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
