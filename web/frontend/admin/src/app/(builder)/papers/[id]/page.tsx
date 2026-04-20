@@ -7,16 +7,21 @@ import { Option, Question, Section } from '@/types/paper';
 import { OutputData } from '@editorjs/editorjs';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  Calendar,
   ChevronDown,
   ChevronRight,
   Circle,
   CircleDot,
+  Clock,
   Copy,
+  FileText,
   GripVertical,
+  Layers,
   LayoutGrid,
   Plus,
   Rocket,
   Settings2,
+  Target,
   Trash2,
   X,
 } from 'lucide-react';
@@ -70,6 +75,28 @@ export default function PaperBuilderPage() {
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [draggedQuestionId, setDraggedQuestionId] = useState<string | null>(null);
   const [draggedSectionId, setDraggedSectionId] = useState<string | null>(null);
+  const [sidebarTab, setSidebarTab] = useState<'quiz' | 'paper'>('quiz');
+
+  // Paper Settings Mock State
+  const [paperDescription, setPaperDescription] = useState('');
+  const [selectedExamId, setSelectedExamId] = useState('');
+  const [defaultPositiveMarks, setDefaultPositiveMarks] = useState(1);
+  const [defaultNegativeMarks, setDefaultNegativeMarks] = useState(0);
+  const [hasSections, setHasSections] = useState(true);
+  const [paperDuration, setPaperDuration] = useState(180);
+  const [paperYear, setPaperYear] = useState(new Date().getFullYear());
+
+  // Update mock state when paper data is loaded
+  useEffect(() => {
+    if (paper) {
+      setPaperDescription(paper.description || '');
+      setSelectedExamId(paper.examId || '');
+      setDefaultPositiveMarks(paper.positiveMarks ?? 1);
+      setDefaultNegativeMarks(paper.negativeMarks ?? 0);
+      setPaperDuration(paper.duration ?? 180);
+      setPaperYear(paper.year || new Date().getFullYear());
+    }
+  }, [paper]);
 
   // Workspace internal state (for the editor/options currently being edited)
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
@@ -572,7 +599,7 @@ export default function PaperBuilderPage() {
                   Create Section
                 </button>
               </div>
-            ) : (
+            ) : hasSections ? (
               localSections.map((section: Section) => (
                 <div key={section.id} className="space-y-1">
                   {/* Section Header */}
@@ -647,7 +674,7 @@ export default function PaperBuilderPage() {
                       onDrop={(e) => handleDropOnSection(e, section.id)}
                       className="pl-6 pr-2 pt-2 grid grid-cols-5 gap-y-3 gap-x-2 animate-in slide-in-from-left-2 duration-300 min-h-[10px]"
                     >
-                      {section.questions?.map((q: Question, idx: number) => (
+                      {section.questions?.map((q: Question) => (
                         <div
                           key={q.id}
                           draggable
@@ -681,9 +708,51 @@ export default function PaperBuilderPage() {
                   )}
                 </div>
               ))
+            ) : (
+              /* Unified Questions View (hasSections = false) */
+              <div className="space-y-4 animate-in fade-in duration-500">
+                <div className="flex items-center gap-2 p-2 px-4 group">
+                  <span className="text-[11px] font-black uppercase tracking-widest text-on-surface-variant/70 group-hover:text-on-background transition-colors">
+                    Questions
+                  </span>
+                </div>
+
+                <div className="pl-6 pr-2 pt-2 grid grid-cols-5 gap-y-4 gap-x-2">
+                  {allQuestions.map((q: Question, idx: number) => (
+                    <div
+                      key={q.id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, q.id)}
+                      className={`transition-opacity ${draggedQuestionId === q.id ? 'opacity-40' : ''}`}
+                    >
+                      <button
+                        onClick={() => handleSelectQuestion(q)}
+                        title={(
+                          (q.content as any)?.blocks?.[0]?.data?.text || 'Empty Question'
+                        ).replace(/<[^>]*>/g, '')}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-black transition-all border-2 ${
+                          activeQuestionId === q.id
+                            ? 'bg-primary border-primary text-white shadow-lg shadow-primary/30 scale-105'
+                            : 'bg-surface-container-low border-outline-variant/30 text-on-surface-variant/40 hover:border-primary/40 hover:text-on-surface-variant hover:bg-surface-container-high'
+                        }`}
+                      >
+                        {idx + 1}
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* Add Question trigger (defaults to first section) */}
+                  <button
+                    onClick={() => handleAddQuestion(localSections[0]?.id)}
+                    className="w-9 h-9 rounded-full flex items-center justify-center border-2 border-dashed border-outline-variant/40 text-on-surface-variant/30 hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all group/addQ"
+                  >
+                    <Plus size={14} strokeWidth={3} />
+                  </button>
+                </div>
+              </div>
             )}
 
-            {!isLoading && localSections.length > 0 && (
+            {!isLoading && localSections.length > 0 && hasSections && (
               <button
                 onClick={handleAddSection}
                 className="mt-4 mb-4 flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed border-outline-variant/20 text-on-surface-variant/40 hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all text-[11px] font-black uppercase tracking-widest group"
@@ -823,37 +892,222 @@ export default function PaperBuilderPage() {
                 </button>
               </div>
             </div>
-
-            {/* Bottom Floating Control Bar */}
-            <div className="mt-8 flex items-center justify-between px-6">
-              <div className="flex items-center gap-6">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-widest">
-                    Points
-                  </span>
-                  <input
-                    type="number"
-                    defaultValue={1}
-                    className="w-12 h-10 bg-surface-container-low border border-outline-variant/10 rounded-xl text-center text-sm font-black text-on-background focus:outline-none focus:border-primary/30 transition-all"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-on-surface-variant/60 hover:text-on-background hover:bg-surface-container-low transition-all text-[10px] font-black uppercase tracking-widest">
-                  <Settings2 size={16} />
-                  Advanced
-                </button>
-              </div>
-            </div>
           </div>
         </main>
 
         {/* RIGHT SIDEBAR: PROPERTIES */}
         <aside className="w-80 flex flex-col bg-background border-l border-outline-variant/10 overflow-hidden shadow-[-10px_0_30px_-15px_rgba(0,0,0,0.02)]">
           {/* Settings Tabs */}
+          <div className="flex items-center p-4 border-b border-outline-variant/5">
+            <div className="flex bg-surface-container-low p-1 rounded-xl w-full">
+              <button
+                onClick={() => setSidebarTab('quiz')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
+                  sidebarTab === 'quiz'
+                    ? 'bg-surface-container-lowest text-primary shadow-sm'
+                    : 'text-on-surface-variant/40 hover:text-on-surface-variant hover:bg-surface-container-high/50'
+                }`}
+              >
+                <LayoutGrid
+                  size={14}
+                  className={sidebarTab === 'quiz' ? 'animate-in zoom-in duration-300' : ''}
+                />
+                Quiz Settings
+              </button>
+              <button
+                onClick={() => setSidebarTab('paper')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${
+                  sidebarTab === 'paper'
+                    ? 'bg-surface-container-lowest text-primary shadow-sm'
+                    : 'text-on-surface-variant/40 hover:text-on-surface-variant hover:bg-surface-container-high/50'
+                }`}
+              >
+                <Settings2
+                  size={14}
+                  className={sidebarTab === 'paper' ? 'animate-in zoom-in duration-300' : ''}
+                />
+                Paper Settings
+              </button>
+            </div>
+          </div>
 
-          <div className="flex-1" />
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
+            {sidebarTab === 'quiz' ? (
+              <div className="p-8 flex flex-col items-center justify-center h-full text-center space-y-4 opacity-20 group">
+                <div className="w-16 h-16 rounded-3xl bg-surface-container-high flex items-center justify-center transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3">
+                  <LayoutGrid size={32} />
+                </div>
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-widest">Quiz Workspace</p>
+                  <p className="text-[10px] mt-1 italic font-medium">Coming Soon</p>
+                </div>
+              </div>
+            ) : (
+              <div className="p-6 space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+                {/* Global Configuration */}
+                <section className="space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-1 h-4 bg-primary rounded-full" />
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/70">
+                      Global Configuration
+                    </h3>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/40 ml-1">
+                        Description (Optional)
+                      </label>
+                      <div className="relative group">
+                        <div className="absolute left-4 top-4 text-on-surface-variant/30 group-focus-within:text-primary transition-colors">
+                          <FileText size={16} />
+                        </div>
+                        <textarea
+                          value={paperDescription}
+                          onChange={(e) => setPaperDescription(e.target.value)}
+                          placeholder="Brief overview of this paper..."
+                          className="w-full bg-surface-container-lowest border border-outline-variant/10 rounded-2xl p-4 pl-12 text-sm text-on-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all min-h-[100px] resize-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/40 ml-1">
+                          Exam
+                        </label>
+                        <div className="relative group">
+                          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/30 group-focus-within:text-primary transition-colors">
+                            <Target size={16} />
+                          </div>
+                          <select
+                            value={selectedExamId}
+                            onChange={(e) => setSelectedExamId(e.target.value)}
+                            className="w-full bg-surface-container-lowest border border-outline-variant/10 rounded-2xl p-3.5 pl-12 text-sm text-on-background appearance-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                          >
+                            <option value="">Select Exam</option>
+                            <option value="exam-1">JEE Advanced</option>
+                            <option value="exam-2">JEE Main</option>
+                            <option value="exam-3">NEET</option>
+                          </select>
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant/20">
+                            <ChevronDown size={14} />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/40 ml-1">
+                          Year (Optional)
+                        </label>
+                        <div className="relative group">
+                          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/30 group-focus-within:text-primary transition-colors">
+                            <Calendar size={16} />
+                          </div>
+                          <input
+                            type="number"
+                            value={paperYear || ''}
+                            onChange={(e) =>
+                              setPaperYear(e.target.value ? Number(e.target.value) : 0)
+                            }
+                            className="w-full bg-surface-container-lowest border border-outline-variant/10 rounded-2xl p-3.5 pl-12 text-sm text-on-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Score & Timing */}
+                <section className="space-y-4 pt-4 border-t border-outline-variant/5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-1 h-4 bg-primary/40 rounded-full" />
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/70">
+                      Score & Timing
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/40 ml-1">
+                        Default Pos.
+                      </label>
+                      <input
+                        type="number"
+                        value={defaultPositiveMarks}
+                        onChange={(e) => setDefaultPositiveMarks(Number(e.target.value))}
+                        className="w-full bg-surface-container-lowest border border-outline-variant/10 rounded-2xl p-3.5 text-center text-sm font-black text-on-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/40 ml-1">
+                        Default Neg.
+                      </label>
+                      <input
+                        type="number"
+                        value={defaultNegativeMarks}
+                        onChange={(e) => setDefaultNegativeMarks(Number(e.target.value))}
+                        className="w-full bg-surface-container-lowest border border-outline-variant/10 rounded-2xl p-3.5 text-center text-sm font-black text-on-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/40 ml-1">
+                      Duration (Optional)
+                    </label>
+                    <div className="relative group">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/30 group-focus-within:text-primary transition-colors">
+                        <Clock size={16} />
+                      </div>
+                      <input
+                        type="number"
+                        value={paperDuration || ''}
+                        onChange={(e) =>
+                          setPaperDuration(e.target.value ? Number(e.target.value) : 0)
+                        }
+                        placeholder="Minutes"
+                        className="w-full bg-surface-container-lowest border border-outline-variant/10 rounded-2xl p-3.5 pl-12 text-sm text-on-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                {/* Structure Section */}
+                <section className="space-y-4 pt-4 border-t border-outline-variant/5">
+                  <div className="flex items-center justify-between p-4 rounded-2xl bg-surface-container-low transition-all">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-surface-container-highest flex items-center justify-center text-primary shadow-sm">
+                        <Layers size={18} />
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-black uppercase tracking-widest text-on-surface">
+                          Have Sections
+                        </p>
+                        <p className="text-[9px] text-on-surface-variant/50">
+                          Group questions into subjects
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setHasSections(!hasSections)}
+                      className={`relative w-11 h-6 rounded-full transition-colors duration-300 focus:outline-none ${
+                        hasSections ? 'bg-primary' : 'bg-outline-variant/30'
+                      }`}
+                    >
+                      <div
+                        className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform duration-300 shadow-sm ${
+                          hasSections ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </section>
+
+                <div className="pt-4" />
+              </div>
+            )}
+          </div>
         </aside>
       </div>
     </div>
