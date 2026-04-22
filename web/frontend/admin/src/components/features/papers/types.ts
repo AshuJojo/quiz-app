@@ -27,6 +27,12 @@ export interface Section {
   };
 }
 
+export interface Option {
+  id: string;
+  content: any;
+  isCorrect: boolean;
+}
+
 export interface Question {
   id: string;
   content: any;
@@ -38,6 +44,7 @@ export interface Question {
   order: number;
   sectionId: string;
   paperId: string;
+  type?: string;
   effectivePositiveMarks?: number;
   effectiveNegativeMarks?: number;
 }

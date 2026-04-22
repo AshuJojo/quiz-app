@@ -2,9 +2,9 @@
 
 import { PaperForm } from '@/components/features/papers/components/paper-form';
 import { PaperItem } from '@/components/features/papers/components/paper-item';
-import { DataTable } from '@/components/shared/data-table/data-table';
-import { paperService } from '@/services/paper-service';
-import { CreatePaperInput, Paper, UpdatePaperInput } from '@/types/paper';
+import { DataTable } from '@/components/ui/data-table/data-table';
+import { paperService } from '@/components/features/papers/services';
+import { CreatePaperInput, Paper, UpdatePaperInput } from '@/components/features/papers/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileText, Plus, Search } from 'lucide-react';
 import { useState } from 'react';

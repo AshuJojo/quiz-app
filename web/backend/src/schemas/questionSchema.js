@@ -3,13 +3,9 @@ const { z } = require('zod');
 const questionItemSchema = z.object({
   paperId: z.string().uuid({ message: 'Invalid paper ID' }),
   sectionId: z.string().uuid({ message: 'Invalid section ID' }),
-  questionText: z.string().min(1, { message: 'Question text must not be empty' }),
-  options: z.array(z.string().min(1)).length(4, { message: 'Exactly 4 options are required' }),
-  correctOptionIndex: z
-    .number()
-    .int()
-    .min(0)
-    .max(3, { message: 'correctOptionIndex must be between 0 and 3' }),
+  content: z.any(),
+  options: z.array(z.any()),
+  correctOptionIndex: z.number().int().min(0),
   explanation: z.string().optional().nullable(),
   order: z.number().int().nonnegative().optional(),
   positiveMarks: z.number().nonnegative().optional().nullable(),
@@ -31,9 +27,9 @@ exports.updateQuestionSchema = z.object({
   body: z
     .object({
       sectionId: z.string().uuid({ message: 'Invalid section ID' }).optional(),
-      questionText: z.string().min(1).optional(),
-      options: z.array(z.string().min(1)).length(4).optional(),
-      correctOptionIndex: z.number().int().min(0).max(3).optional(),
+      content: z.any().optional(),
+      options: z.array(z.any()).optional(),
+      correctOptionIndex: z.number().int().min(0).optional(),
       explanation: z.string().optional().nullable(),
       order: z.number().int().nonnegative().optional(),
       positiveMarks: z.number().nonnegative().optional().nullable(),
@@ -46,14 +42,14 @@ exports.updateQuestionSchema = z.object({
 
 exports.bulkUpdateQuestionsSchema = z.object({
   body: z.object({
-    questions: z
+    updates: z
       .array(
         z.object({
           id: z.string().uuid({ message: 'Invalid question ID' }),
           sectionId: z.string().uuid({ message: 'Invalid section ID' }).optional(),
-          questionText: z.string().min(1).optional(),
-          options: z.array(z.string().min(1)).length(4).optional(),
-          correctOptionIndex: z.number().int().min(0).max(3).optional(),
+          content: z.any().optional(),
+          options: z.array(z.any()).optional(),
+          correctOptionIndex: z.number().int().min(0).optional(),
           explanation: z.string().optional().nullable(),
           order: z.number().int().nonnegative().optional(),
           positiveMarks: z.number().nonnegative().optional().nullable(),

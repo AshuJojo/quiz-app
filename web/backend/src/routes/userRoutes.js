@@ -1,4 +1,3 @@
-// src/routes/userRoutes.js
 const { Router } = require('express');
 const userController = require('../controllers/userController');
 const { validateRequest } = require('../middlewares/validateRequest');
@@ -11,9 +10,9 @@ const {
 
 const router = Router();
 
+router.get('/', userController.index);
+router.get('/:id', validateRequest(userIdParamsSchema), userController.show);
 router.post('/', validateRequest(createUserSchema), userController.createUser);
-router.get('/', userController.getUser);
-router.get('/:id', validateRequest(userIdParamsSchema), userController.getUser);
 router.patch('/:id', validateRequest(updateUserSchema), userController.updateUser);
 router.delete('/', validateRequest(deleteUsersSchema), userController.deleteUsers);
 router.delete('/:id', validateRequest(userIdParamsSchema), userController.deleteUser);

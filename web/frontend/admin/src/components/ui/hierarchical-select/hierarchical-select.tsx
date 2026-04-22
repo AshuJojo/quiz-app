@@ -141,7 +141,7 @@ export function HierarchicalSelect({
     setSearchQuery('');
   };
 
-  const renderOptions = (items: TreeItem[], level = 0) => {
+  const renderOptions = (items: TreeItem[], level = 0): React.ReactNode[] => {
     return items
       .filter(
         (item) =>

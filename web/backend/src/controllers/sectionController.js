@@ -49,7 +49,7 @@ exports.update = async (req, res, next) => {
 
 exports.bulkUpdate = async (req, res, next) => {
   try {
-    const sections = await sectionService.updateSections(req.body.sections);
+    const sections = await sectionService.updateSections(req.body.updates);
     res.status(200).json({
       success: true,
       count: sections.length,

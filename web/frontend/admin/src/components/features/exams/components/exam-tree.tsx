@@ -1,7 +1,7 @@
 'use client';
 
-import { examService } from '@/services/exam-service';
-import { Exam } from '@/types/exam';
+import { examService } from '@/components/features/exams/services';
+import { Exam } from '@/components/features/exams/types';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { ExamItem } from './exam-item';

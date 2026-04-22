@@ -1,11 +1,11 @@
 'use client';
 
-import { DataTable } from '@/components/shared/data-table/data-table';
+import { DataTable } from '@/components/ui/data-table/data-table';
 import { ExamForm } from '@/components/features/exams/components/exam-form';
 import { ExamItem } from '@/components/features/exams/components/exam-item';
 import { ExamTree } from '@/components/features/exams/components/exam-tree';
-import { examService } from '@/services/exam-service';
-import { CreateExamInput, Exam, UpdateExamInput } from '@/types/exam';
+import { examService } from '@/components/features/exams/services';
+import { CreateExamInput, Exam, UpdateExamInput } from '@/components/features/exams/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FolderTree, Plus, Search } from 'lucide-react';
 import { useState } from 'react';

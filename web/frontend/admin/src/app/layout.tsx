@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   description: 'Quiz App Admin Panel',
 };
 
-import { Providers } from '@/components/providers';
+import { Providers } from '@/providers';
 
 export default function RootLayout({
   children,

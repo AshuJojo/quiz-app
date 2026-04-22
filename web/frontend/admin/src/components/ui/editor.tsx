@@ -62,7 +62,7 @@ export default function Editor({
         minHeight: minHeight,
         tools: {
           paragraph: {
-            class: Paragraph,
+            class: Paragraph as any,
             inlineToolbar: true,
           },
           image: {

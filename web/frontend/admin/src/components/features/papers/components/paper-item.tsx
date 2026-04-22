@@ -1,8 +1,8 @@
 'use client';
 
-import { Paper } from '@/types/paper';
+import { Paper } from '@/components/features/papers/types';
 import { Calendar, Clock, FileText, Pencil, Trash2 } from 'lucide-react';
-import { DataTableItem } from '@/components/shared/data-table/data-table-item';
+import { DataTableItem } from '@/components/ui/data-table/data-table-item';
 import { useRouter } from 'next/navigation';
 
 interface PaperItemProps {

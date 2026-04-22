@@ -1,6 +1,6 @@
 import { apiClient } from '@/lib/api-client';
 
-export interface Section {
+export interface SectionUpdateInput {
   id: string;
   title: string;
   order: number;

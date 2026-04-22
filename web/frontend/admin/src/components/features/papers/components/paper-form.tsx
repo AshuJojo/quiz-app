@@ -1,9 +1,9 @@
 'use client';
 
-import { HierarchicalSelect } from '@/components/shared/hierarchical-select/hierarchical-select';
+import { HierarchicalSelect } from '@/components/ui/hierarchical-select/hierarchical-select';
 import { cn } from '@/lib/utils/cn';
-import { examService } from '@/services/exam-service';
-import { CreatePaperInput, Paper, PaperSchema } from '@/types/paper';
+import { examService } from '@/components/features/exams/services';
+import { CreatePaperInput, Paper, PaperSchema } from '@/components/features/papers/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, X } from 'lucide-react';
@@ -50,7 +50,7 @@ export function PaperForm({ initialData, onSubmit, onClose, isLoading }: PaperFo
     handleSubmit,
     formState: { errors },
   } = useForm<CreatePaperInput>({
-    resolver: zodResolver(PaperSchema),
+    resolver: zodResolver(PaperSchema) as any,
     defaultValues: {
       title: initialData?.title || '',
       examId: initialData?.examId || '',
@@ -84,7 +84,7 @@ export function PaperForm({ initialData, onSubmit, onClose, isLoading }: PaperFo
         </div>
 
         <form
-          onSubmit={handleSubmit(onSubmit)}
+          onSubmit={handleSubmit(onSubmit as any)}
           className="p-8 space-y-6 relative max-h-[70vh] overflow-y-auto"
         >
           <div className="flex flex-col gap-2">
@@ -96,7 +96,7 @@ export function PaperForm({ initialData, onSubmit, onClose, isLoading }: PaperFo
               control={control}
               render={({ field }) => (
                 <HierarchicalSelect
-                  value={field.value}
+                  value={field.value ?? undefined}
                   onChange={field.onChange}
                   onFetchChildren={handleFetchChildren}
                   initialData={exams}

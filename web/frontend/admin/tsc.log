@@ -1,0 +1,24 @@
+src/app/(builder)/papers/[id]/page.tsx(6,10): error TS2305: Module '"@/types/paper"' has no exported member 'Option'.
+src/app/(builder)/papers/[id]/page.tsx(116,10): error TS7006: Parameter 'acc' implicitly has an 'any' type.
+src/app/(builder)/papers/[id]/page.tsx(116,15): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/app/(builder)/papers/[id]/page.tsx(136,11): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Question'.
+src/app/(builder)/papers/[id]/page.tsx(151,36): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/app/(builder)/papers/[id]/page.tsx(151,39): error TS7006: Parameter 'i' implicitly has an 'any' type.
+src/app/(builder)/papers/[id]/page.tsx(504,7): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Question'.
+src/components/features/papers/components/paper-form.tsx(53,5): error TS2322: Type 'Resolver<{ title: string; id?: string | undefined; examId?: string | null | undefined; description?: string | null | undefined; hasSections?: boolean | undefined; positiveMarks?: unknown; negativeMarks?: unknown; duration?: unknown; year?: unknown; isPublished?: boolean | undefined; }, any, { ...; }>' is not assignable to type 'Resolver<{ title: string; hasSections: boolean; positiveMarks: number; negativeMarks: number; duration: number; isPublished: boolean; id?: string | undefined; examId?: string | null | undefined; description?: string | ... 1 more ... | undefined; year?: number | ... 1 more ... | undefined; }, any, { ...; }>'.
+  Types of parameters 'options' and 'options' are incompatible.
+    Type 'ResolverOptions<{ title: string; hasSections: boolean; positiveMarks: number; negativeMarks: number; duration: number; isPublished: boolean; id?: string | undefined; examId?: string | null | undefined; description?: string | ... 1 more ... | undefined; year?: number | ... 1 more ... | undefined; }>' is not assignable to type 'ResolverOptions<{ title: string; id?: string | undefined; examId?: string | null | undefined; description?: string | null | undefined; hasSections?: boolean | undefined; positiveMarks?: unknown; negativeMarks?: unknown; duration?: unknown; year?: unknown; isPublished?: boolean | undefined; }>'.
+      Type 'boolean | undefined' is not assignable to type 'boolean'.
+        Type 'undefined' is not assignable to type 'boolean'.
+src/components/features/papers/components/paper-form.tsx(87,34): error TS2345: Argument of type '(data: { title: string; hasSections: boolean; positiveMarks: number; negativeMarks: number; duration: number; isPublished: boolean; id?: string | undefined; examId?: string | null | undefined; description?: string | ... 1 more ... | undefined; year?: number | ... 1 more ... | undefined; }) => Promise<...>' is not assignable to parameter of type 'SubmitHandler<TFieldValues>'.
+  Types of parameters 'data' and 'data' are incompatible.
+    Type 'TFieldValues' is not assignable to type '{ title: string; hasSections: boolean; positiveMarks: number; negativeMarks: number; duration: number; isPublished: boolean; id?: string | undefined; examId?: string | null | undefined; description?: string | ... 1 more ... | undefined; year?: number | ... 1 more ... | undefined; }'.
+      Type 'FieldValues' is missing the following properties from type '{ title: string; hasSections: boolean; positiveMarks: number; negativeMarks: number; duration: number; isPublished: boolean; id?: string | undefined; examId?: string | null | undefined; description?: string | ... 1 more ... | undefined; year?: number | ... 1 more ... | undefined; }': title, hasSections, positiveMarks, negativeMarks, and 2 more.
+src/components/features/papers/components/paper-form.tsx(99,19): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/components/shared/editor.tsx(65,13): error TS2322: Type 'typeof Paragraph' is not assignable to type 'ToolConstructable | undefined'.
+  Type 'typeof Paragraph' is not assignable to type 'BlockToolConstructable'.
+    Types of parameters '__0' and 'config' are incompatible.
+      Type 'BlockToolConstructorOptions<any, any>' is not assignable to type 'ParagraphParams'.
+        Property 'config' is optional in type 'BlockToolConstructorOptions<any, any>' but required in type 'ParagraphParams'.
+src/components/shared/hierarchical-select/hierarchical-select.tsx(144,9): error TS7023: 'renderOptions' implicitly has return type 'any' because it does not have a return type annotation and is referenced directly or indirectly in one of its return expressions.

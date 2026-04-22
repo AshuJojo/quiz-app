@@ -67,8 +67,8 @@ model Question {
   sectionId          String
   section            Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   order              Int      @default(0)
-  questionText       String
-  options            String[] // Array of 4 options
+  content            Json
+  options            Json
   correctOptionIndex Int
   explanation        String?
   positiveMarks      Float?

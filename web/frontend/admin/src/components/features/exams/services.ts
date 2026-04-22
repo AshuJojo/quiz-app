@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api-client';
-import { CreateExamInput, UpdateExamInput } from '@/types/exam';
+import { CreateExamInput, UpdateExamInput } from './types';
 
 export const examService = {
   getExams: async (

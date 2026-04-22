@@ -1,10 +1,10 @@
 'use client';
 
 import { cn } from '@/lib/utils/cn';
-import { Exam } from '@/types/exam';
+import { Exam } from '@/components/features/exams/types';
 import { ChevronDown, FileText, Folder, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { DataTableItem } from '@/components/shared/data-table/data-table-item';
+import { DataTableItem } from '@/components/ui/data-table/data-table-item';
 
 interface ExamItemProps {
   exam: Exam;

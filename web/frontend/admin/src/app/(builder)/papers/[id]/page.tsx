@@ -1,9 +1,9 @@
 'use client';
 
-import { paperService } from '@/services/paper-service';
-import { questionService } from '@/services/question-service';
-import { sectionService } from '@/services/section-service';
-import { Option, Question, Section } from '@/types/paper';
+import { paperService } from '@/components/features/papers/services';
+import { questionService } from '@/components/features/papers/question-service';
+import { sectionService } from '@/components/features/papers/section-service';
+import { Option, Question, Section } from '@/components/features/papers/types';
 import { OutputData } from '@editorjs/editorjs';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -33,7 +33,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
-const Editor = dynamic(() => import('@/components/shared/editor'), {
+const Editor = dynamic(() => import('@/components/ui/editor'), {
   ssr: false,
   loading: () => <div className="h-20 bg-surface-container-low animate-pulse rounded-2xl" />,
 });
@@ -113,7 +113,7 @@ export default function PaperBuilderPage() {
   useEffect(() => {
     if (isSuccess && initialSections && localSections.length === 0) {
       const allQuestionsCount = initialSections.reduce(
-        (acc, s) => acc + (s.questions?.length || 0),
+        (acc: number, s: Section) => acc + (s.questions?.length || 0),
         0
       );
 
@@ -148,7 +148,9 @@ export default function PaperBuilderPage() {
                   isDefault: true,
                 },
               ]
-            : initialSections.map((s, i) => (i === 0 ? { ...s, questions: [newQuestion] } : s));
+            : initialSections.map((s: Section, i: number) =>
+                i === 0 ? { ...s, questions: [newQuestion] } : s
+              );
 
         setLocalSections(updatedSections);
         setActiveQuestionId(questionId);
@@ -352,23 +354,31 @@ export default function PaperBuilderPage() {
 
       const questionUpdates = allQuestions
         .filter((q) => !q.id.startsWith('temp-'))
-        .map((q, idx) => ({
-          id: q.id,
-          content: q.content,
-          options: q.options,
-          sectionId: q.sectionId,
-          order: idx,
-        }));
+        .map((q, idx) => {
+          const cIndex = q.options?.findIndex((opt: any) => opt.isCorrect);
+          return {
+            id: q.id,
+            content: q.content,
+            options: q.options,
+            correctOptionIndex: cIndex !== -1 ? cIndex : 0,
+            sectionId: q.sectionId,
+            order: idx,
+          };
+        });
 
       const newQuestions = allQuestions
         .filter((q) => q.id.startsWith('temp-'))
-        .map((q, idx) => ({
-          content: q.content,
-          options: q.options,
-          sectionId: q.sectionId,
-          paperId: id,
-          order: idx,
-        }));
+        .map((q, idx) => {
+          const cIndex = q.options?.findIndex((opt: any) => opt.isCorrect);
+          return {
+            content: q.content,
+            options: q.options,
+            correctOptionIndex: cIndex !== -1 ? cIndex : 0,
+            sectionId: q.sectionId,
+            paperId: id,
+            order: idx,
+          };
+        });
 
       const promises = [];
 

@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api-client';
-import { CreatePaperInput, UpdatePaperInput } from '@/types/paper';
+import { CreatePaperInput, UpdatePaperInput } from './types';
 
 export const paperService = {
   getPapers: async (examId?: string, search?: string, page: number = 1, limit: number = 10) => {

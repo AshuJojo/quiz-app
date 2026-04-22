@@ -1,14 +1,13 @@
 const prisma = require('../config/db');
 
-const slugify = (text) => {
-  return text
+const slugify = (text) =>
+  text
     .toString()
     .toLowerCase()
     .trim()
-    .replace(/\s+/g, '-') // Replace spaces with -
-    .replace(/[^\w\-]+/g, '') // Remove all non-word chars
-    .replace(/\-\-+/g, '-'); // Replace multiple - with single -
-};
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-');
 
 const getExamPath = async (examId, cache = new Map()) => {
   if (!examId) return '';
@@ -24,9 +23,7 @@ const getExamPath = async (examId, cache = new Map()) => {
   let path = exam.name;
   if (exam.parentId) {
     const parentPath = await getExamPath(exam.parentId, cache);
-    if (parentPath) {
-      path = `${parentPath} / ${exam.name}`;
-    }
+    if (parentPath) path = `${parentPath} / ${exam.name}`;
   }
 
   cache.set(examId, path);
@@ -41,14 +38,10 @@ exports.getExams = async (parentId, page, limit, search) => {
   if (search) {
     where.name = { contains: search, mode: 'insensitive' };
   } else if (parentId !== undefined) {
-    if (parentId === 'null' || parentId === 'undefined' || parentId === '') {
-      where.parentId = null;
-    } else {
-      where.parentId = parentId;
-    }
+    where.parentId =
+      parentId === 'null' || parentId === 'undefined' || parentId === '' ? null : parentId;
   }
 
-  // Handle pagination
   const p = parseInt(page) || 1;
   const isAll = limit === 'all' || limit === undefined;
   const l = isAll ? undefined : parseInt(limit) || 10;
@@ -57,17 +50,8 @@ exports.getExams = async (parentId, page, limit, search) => {
   const [data, total] = await Promise.all([
     prisma.exam.findMany({
       where,
-      include: {
-        _count: {
-          select: {
-            children: true,
-            papers: true,
-          },
-        },
-      },
-      orderBy: {
-        name: 'asc',
-      },
+      include: { _count: { select: { children: true, papers: true } } },
+      orderBy: { name: 'asc' },
       skip,
       take: l,
     }),
@@ -75,68 +59,46 @@ exports.getExams = async (parentId, page, limit, search) => {
   ]);
 
   const enrichedData = await Promise.all(
-    data.map(async (exam) => ({
-      ...exam,
-      fullPath: await getExamPath(exam.id),
-    }))
+    data.map(async (exam) => ({ ...exam, fullPath: await getExamPath(exam.id) }))
   );
 
-  return {
-    data: enrichedData,
-    total,
-    page: isAll ? 1 : p,
-    limit: isAll ? total : l,
-  };
+  return { data: enrichedData, total, page: isAll ? 1 : p, limit: isAll ? total : l };
 };
 
 exports.getExamById = async (id) => {
   const exam = await prisma.exam.findUnique({
     where: { id },
     include: {
-      children: {
-        include: {
-          _count: {
-            select: { children: true, papers: true },
-          },
-        },
-      },
-      _count: {
-        select: { papers: true },
-      },
+      children: { include: { _count: { select: { children: true, papers: true } } } },
+      _count: { select: { papers: true } },
     },
   });
 
   if (!exam) return null;
 
-  return {
-    ...exam,
-    fullPath: await getExamPath(id),
-  };
+  return { ...exam, fullPath: await getExamPath(id) };
 };
 
 exports.createExam = async (data) => {
   let slug = data.slug || slugify(data.name);
 
-  // Check if slug exists, if so, append unique suffix
   const existingSlug = await prisma.exam.findUnique({ where: { slug } });
   if (existingSlug) {
-    const uniqueSuffix = Math.floor(100 + Math.random() * 900); // Simple 3-digit suffix
-    slug = `${slug}-${uniqueSuffix}`;
+    slug = `${slug}-${Math.floor(100 + Math.random() * 900)}`;
   }
 
-  // Validate parentId if provided
   if (data.parentId) {
-    const parentExists = await prisma.exam.findUnique({
-      where: { id: data.parentId },
-    });
+    const parentExists = await prisma.exam.findUnique({ where: { id: data.parentId } });
     if (!parentExists) {
-      throw new Error(`Parent exam not found: ${data.parentId}`);
+      const err = new Error(`Parent exam not found: ${data.parentId}`);
+      err.statusCode = 400;
+      throw err;
     }
   }
 
   const { parentId, ...examData } = data;
 
-  return await prisma.exam.create({
+  return prisma.exam.create({
     data: {
       ...examData,
       slug,
@@ -146,45 +108,38 @@ exports.createExam = async (data) => {
 };
 
 exports.updateExam = async (id, data) => {
-  // Check if exam exists
   const targetExam = await prisma.exam.findUnique({ where: { id } });
   if (!targetExam) {
-    throw new Error('Exam not found');
+    const err = new Error('Exam not found');
+    err.statusCode = 404;
+    throw err;
   }
-
-  // Prevent simple self-reference loop
 
   if (data.parentId === id) {
-    throw new Error('An exam cannot be its own parent');
+    const err = new Error('An exam cannot be its own parent');
+    err.statusCode = 400;
+    throw err;
   }
 
-  // Only handle slug if it's explicitly provided in the patch data
   if (data.slug) {
-    const existingSlug = await prisma.exam.findFirst({
-      where: {
-        slug: data.slug,
-        NOT: { id }, // Don't match itself
-      },
-    });
+    const existingSlug = await prisma.exam.findFirst({ where: { slug: data.slug, NOT: { id } } });
     if (existingSlug) {
-      const uniqueSuffix = Math.floor(100 + Math.random() * 900);
-      data.slug = `${data.slug}-${uniqueSuffix}`;
+      data.slug = `${data.slug}-${Math.floor(100 + Math.random() * 900)}`;
     }
   }
 
-  // Validate parentId if provided
   if (data.parentId) {
-    const parentExists = await prisma.exam.findUnique({
-      where: { id: data.parentId },
-    });
+    const parentExists = await prisma.exam.findUnique({ where: { id: data.parentId } });
     if (!parentExists) {
-      throw new Error(`Parent exam not found: ${data.parentId}`);
+      const err = new Error(`Parent exam not found: ${data.parentId}`);
+      err.statusCode = 400;
+      throw err;
     }
   }
 
   const { parentId, ...updateData } = data;
 
-  return await prisma.exam.update({
+  return prisma.exam.update({
     where: { id },
     data: {
       ...updateData,
@@ -198,40 +153,27 @@ exports.updateExam = async (id, data) => {
 };
 
 exports.deleteExam = async (id) => {
-  // Check if it has children or papers
   const exam = await prisma.exam.findUnique({
     where: { id },
-    include: {
-      _count: {
-        select: { children: true, papers: true },
-      },
-    },
+    include: { _count: { select: { children: true, papers: true } } },
   });
 
   if (!exam) {
-    throw new Error('Exam not found');
+    const err = new Error('Exam not found');
+    err.statusCode = 404;
+    throw err;
   }
 
-  return await prisma.exam.delete({
-    where: { id },
-  });
+  return prisma.exam.delete({ where: { id } });
 };
 
 exports.bulkDeleteExams = async (ids) => {
-  // Verify all IDs exists to provide a specific error
-  const existingCount = await prisma.exam.count({
-    where: { id: { in: ids } },
-  });
-
+  const existingCount = await prisma.exam.count({ where: { id: { in: ids } } });
   if (existingCount !== ids.length) {
-    const error = new Error('Invalid exam ids');
-    error.statusCode = 400;
-    throw error;
+    const err = new Error('One or more exam IDs are invalid');
+    err.statusCode = 400;
+    throw err;
   }
 
-  return await prisma.exam.deleteMany({
-    where: {
-      id: { in: ids },
-    },
-  });
+  return prisma.exam.deleteMany({ where: { id: { in: ids } } });
 };

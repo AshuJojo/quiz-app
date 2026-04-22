@@ -34,7 +34,7 @@ exports.updateSectionSchema = z.object({
 
 exports.bulkUpdateSectionsSchema = z.object({
   body: z.object({
-    sections: z
+    updates: z
       .array(
         z.object({
           id: z.string().uuid({ message: 'Invalid section ID' }),
