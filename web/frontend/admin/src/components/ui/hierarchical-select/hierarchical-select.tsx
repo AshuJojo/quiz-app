@@ -5,7 +5,7 @@ import { ChevronDown, Search, X, Loader2 } from 'lucide-react';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { HierarchicalOption } from './hierarchical-option';
 
-interface TreeItem {
+export interface TreeItem {
   id: string;
   name: string;
   hasChildren: boolean;
@@ -23,6 +23,8 @@ interface HierarchicalSelectProps {
   error?: string;
   isLoadingInitial?: boolean;
   selectedLabel?: string;
+  triggerClassName?: string;
+  inputClassName?: string;
 }
 
 export function HierarchicalSelect({
@@ -35,6 +37,8 @@ export function HierarchicalSelect({
   error,
   isLoadingInitial = false,
   selectedLabel,
+  triggerClassName,
+  inputClassName,
 }: HierarchicalSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -181,7 +185,8 @@ export function HierarchicalSelect({
         className={cn(
           'flex items-center gap-4 px-6 py-4 rounded-2xl border-2 border-outline-variant/30 bg-white/50 cursor-pointer transition-all hover:border-primary/50 group',
           isOpen ? 'border-primary ring-4 ring-primary/10 bg-white' : '',
-          error ? 'border-red-500/50 focus:border-red-500' : ''
+          error ? 'border-red-500/50 focus:border-red-500' : '',
+          triggerClassName
         )}
       >
         <div className="flex-1 min-w-0 relative">
@@ -190,7 +195,8 @@ export function HierarchicalSelect({
             type="text"
             className={cn(
               'w-full bg-transparent border-none outline-none text-lg font-bold placeholder:text-on-surface-variant/40 placeholder:font-bold',
-              !isOpen && 'cursor-pointer'
+              !isOpen && 'cursor-pointer',
+              inputClassName
             )}
             placeholder={placeholder}
             value={isOpen ? searchQuery : selectedName || ''}

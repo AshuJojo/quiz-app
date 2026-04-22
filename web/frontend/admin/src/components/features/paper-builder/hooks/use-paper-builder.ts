@@ -1,6 +1,6 @@
 'use client';
 
-import { questionService, sectionService } from '../services';
+import { paperService, questionService, sectionService } from '../services';
 import { Option, Paper, Question, Section } from '@/components/features/papers/types';
 import { OutputData } from '@editorjs/editorjs';
 import { useQueryClient } from '@tanstack/react-query';
@@ -118,13 +118,29 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
           ...section,
           questions:
             section.questions?.map((q) =>
-              q.id === activeQuestionId ? { ...q, content: questionContent, options } : q
+              q.id === activeQuestionId
+                ? {
+                    ...q,
+                    content: questionContent,
+                    options,
+                    explanation: questionExplanation,
+                    positiveMarks: questionPositiveMarks,
+                    negativeMarks: questionNegativeMarks,
+                  }
+                : q
             ) || [],
         }))
       );
       setIsDirty(true);
     }
-  }, [questionContent, options, activeQuestionId]);
+  }, [
+    questionContent,
+    options,
+    activeQuestionId,
+    questionExplanation,
+    questionPositiveMarks,
+    questionNegativeMarks,
+  ]);
 
   const allQuestions = useMemo(
     () => localSections.flatMap((s) => s.questions || []),
@@ -147,12 +163,37 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
     if (activeQuestionId) {
       const q = allQuestions.find((q) => q.id === activeQuestionId);
       if (q) {
-        setQuestionExplanation((q as any).explanation || '');
-        setQuestionPositiveMarks((q as any).positiveMarks || null);
-        setQuestionNegativeMarks((q as any).negativeMarks || null);
+        setQuestionExplanation(q.explanation || '');
+        setQuestionPositiveMarks(q.positiveMarks ?? null);
+        setQuestionNegativeMarks(q.negativeMarks ?? null);
       }
     }
   }, [activeQuestionId, allQuestions]);
+
+  // Dirty state for global paper fields
+  useEffect(() => {
+    if (paper) {
+      const isPaperDirty =
+        paperDescription !== (paper.description || '') ||
+        selectedExamId !== (paper.examId || '') ||
+        defaultPositiveMarks !== (paper.positiveMarks ?? 1) ||
+        defaultNegativeMarks !== (paper.negativeMarks ?? 0) ||
+        hasSections !== (paper.hasSections ?? true) ||
+        paperDuration !== (paper.duration ?? 180) ||
+        paperYear !== (paper.year || new Date().getFullYear());
+
+      if (isPaperDirty) setIsDirty(true);
+    }
+  }, [
+    paper,
+    paperDescription,
+    selectedExamId,
+    defaultPositiveMarks,
+    defaultNegativeMarks,
+    hasSections,
+    paperDuration,
+    paperYear,
+  ]);
 
   const activeQuestionIndex = useMemo(
     () => allQuestions.findIndex((q) => q.id === activeQuestionId),
@@ -369,86 +410,130 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
     setOptions((prev) => prev.filter((o) => o.id !== optId));
   }, []);
 
-  const handleSave = useCallback(async () => {
-    if (!isDirty || isSaving) return;
-    setIsSaving(true);
-    try {
-      const allQs = localSections.flatMap((s) => s.questions || []);
+  const handleSave = useCallback(
+    async (isPublishing = false) => {
+      if (!isDirty && !isPublishing && !isSaving) return;
+      setIsSaving(true);
+      try {
+        const allQs = localSections.flatMap((s) => s.questions || []);
 
-      const questionUpdates = allQs
-        .filter((q) => !q.id.startsWith('temp-'))
-        .map((q, idx) => ({
-          id: q.id,
-          content: q.content,
-          options: q.options,
-          correctOptionIndex: Math.max(0, q.options?.findIndex((o: any) => o.isCorrect) ?? 0),
-          sectionId: q.sectionId,
-          order: idx,
-        }));
+        const questionUpdates = allQs
+          .filter((q) => !q.id.startsWith('temp-'))
+          .map((q, idx) => ({
+            id: q.id,
+            content: q.content,
+            options: q.options,
+            explanation: q.explanation,
+            positiveMarks: q.positiveMarks,
+            negativeMarks: q.negativeMarks,
+            correctOptionIndex: Math.max(0, q.options?.findIndex((o: any) => o.isCorrect) ?? 0),
+            sectionId: q.sectionId,
+            order: idx,
+          }));
 
-      const newQuestions = allQs
-        .filter((q) => q.id.startsWith('temp-'))
-        .map((q, idx) => ({
-          content: q.content,
-          options: q.options,
-          correctOptionIndex: Math.max(0, q.options?.findIndex((o: any) => o.isCorrect) ?? 0),
-          sectionId: q.sectionId,
-          paperId,
-          order: idx,
-        }));
+        const newQuestions = allQs
+          .filter((q) => q.id.startsWith('temp-'))
+          .map((q, idx) => ({
+            content: q.content,
+            options: q.options,
+            explanation: q.explanation,
+            positiveMarks: q.positiveMarks,
+            negativeMarks: q.negativeMarks,
+            correctOptionIndex: Math.max(0, q.options?.findIndex((o: any) => o.isCorrect) ?? 0),
+            sectionId: q.sectionId,
+            paperId,
+            order: idx,
+          }));
 
-      const sectionUpdates = localSections
-        .filter((s) => !s.id.startsWith('temp-'))
-        .map((s, idx) => ({
-          id: s.id,
-          title: s.title,
-          order: idx,
-          positiveMarks: s.positiveMarks,
-          negativeMarks: s.negativeMarks,
-        }));
+        const sectionUpdates = localSections
+          .filter((s) => !s.id.startsWith('temp-'))
+          .map((s, idx) => ({
+            id: s.id,
+            title: s.title,
+            order: idx,
+            positiveMarks: s.positiveMarks,
+            negativeMarks: s.negativeMarks,
+          }));
 
-      const newSections = localSections
-        .filter((s) => s.id.startsWith('temp-'))
-        .map((s, idx) => ({
-          title: s.title,
-          paperId,
-          order: idx,
-          positiveMarks: s.positiveMarks,
-          negativeMarks: s.negativeMarks,
-        }));
+        const newSections = localSections
+          .filter((s) => s.id.startsWith('temp-'))
+          .map((s, idx) => ({
+            title: s.title,
+            paperId,
+            order: idx,
+            positiveMarks: s.positiveMarks,
+            negativeMarks: s.negativeMarks,
+          }));
 
-      const promises: Promise<any>[] = [];
-      if (questionUpdates.length > 0)
-        promises.push(questionService.updateQuestions(questionUpdates));
-      if (newQuestions.length > 0) promises.push(questionService.createQuestions(newQuestions));
-      if (deletedQuestionIds.size > 0)
-        promises.push(questionService.deleteQuestions(Array.from(deletedQuestionIds)));
-      if (sectionUpdates.length > 0) promises.push(sectionService.updateSections(sectionUpdates));
-      if (newSections.length > 0) promises.push(sectionService.createSections(newSections));
-      if (deletedSectionIds.size > 0)
-        promises.push(sectionService.deleteSections(Array.from(deletedSectionIds)));
+        const paperUpdate = {
+          description: paperDescription,
+          examId: selectedExamId,
+          positiveMarks: defaultPositiveMarks,
+          negativeMarks: defaultNegativeMarks,
+          hasSections,
+          duration: paperDuration,
+          year: paperYear,
+          isPublished: isPublishing ? true : undefined,
+        };
 
-      await Promise.all(promises);
-      toast.success('Paper saved successfully');
-      setIsDirty(false);
-      setDeletedQuestionIds(new Set());
-      setDeletedSectionIds(new Set());
-      queryClient.invalidateQueries({ queryKey: ['paper', paperId] });
-    } catch (error) {
-      console.error('Failed to save paper:', error);
-      toast.error('Failed to save paper changes');
-    } finally {
-      setIsSaving(false);
-    }
-  }, [
-    isDirty,
-    isSaving,
-    localSections,
-    deletedQuestionIds,
-    deletedSectionIds,
-    paperId,
-    queryClient,
-  ]);
+        const promises: Promise<any>[] = [];
+
+        // 1. Update Paper Global Settings
+        promises.push(paperService.updatePaper(paperId, paperUpdate));
+
+        // 2. Update Questions
+        if (questionUpdates.length > 0)
+          promises.push(questionService.updateQuestions(questionUpdates));
+        if (newQuestions.length > 0) promises.push(questionService.createQuestions(newQuestions));
+        if (deletedQuestionIds.size > 0)
+          promises.push(questionService.deleteQuestions(Array.from(deletedQuestionIds)));
+
+        // 3. Update Sections
+        if (sectionUpdates.length > 0) promises.push(sectionService.updateSections(sectionUpdates));
+        if (newSections.length > 0) promises.push(sectionService.createSections(newSections));
+        if (deletedSectionIds.size > 0)
+          promises.push(sectionService.deleteSections(Array.from(deletedSectionIds)));
+
+        await Promise.all(promises);
+        toast.success(isPublishing ? 'Paper published successfully' : 'Paper saved successfully');
+        setIsDirty(false);
+        setDeletedQuestionIds(new Set());
+        setDeletedSectionIds(new Set());
+        queryClient.invalidateQueries({ queryKey: ['paper', paperId] });
+      } catch (error) {
+        console.error('Failed to save paper:', error);
+        toast.error('Failed to save paper changes');
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [
+      isDirty,
+      isSaving,
+      localSections,
+      deletedQuestionIds,
+      deletedSectionIds,
+      paperId,
+      queryClient,
+      paperDescription,
+      selectedExamId,
+      defaultPositiveMarks,
+      defaultNegativeMarks,
+      hasSections,
+      paperDuration,
+      paperYear,
+    ]
+  );
+
+  const handlePublish = useCallback(async () => {
+    if (
+      !window.confirm(
+        'Are you sure you want to publish this paper? It will become visible to students.'
+      )
+    )
+      return;
+    await handleSave(true);
+  }, [handleSave]);
 
   return {
     localSections,
@@ -508,5 +593,6 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
     handleAddOption,
     handleDeleteOption,
     handleSave,
+    handlePublish,
   };
 }

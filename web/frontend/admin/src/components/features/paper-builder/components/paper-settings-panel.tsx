@@ -1,10 +1,16 @@
 'use client';
 
-import { Calendar, ChevronDown, Clock, FileText, Layers, Target } from 'lucide-react';
+import { Calendar, Clock, Layers, Target } from 'lucide-react';
+import {
+  HierarchicalSelect,
+  TreeItem,
+} from '@/components/ui/hierarchical-select/hierarchical-select';
 
 interface PaperSettingsPanelProps {
   description: string;
   examId: string;
+  exams: any[];
+  selectedLabel?: string;
   defaultPositiveMarks: number;
   defaultNegativeMarks: number;
   hasSections: boolean;
@@ -12,6 +18,7 @@ interface PaperSettingsPanelProps {
   year: number;
   onDescriptionChange: (v: string) => void;
   onExamIdChange: (v: string) => void;
+  onFetchChildren: (parentId: string) => Promise<any[]>;
   onDefaultPositiveMarksChange: (v: number) => void;
   onDefaultNegativeMarksChange: (v: number) => void;
   onHasSectionsChange: (v: boolean) => void;
@@ -22,6 +29,8 @@ interface PaperSettingsPanelProps {
 export default function PaperSettingsPanel({
   description,
   examId,
+  exams,
+  selectedLabel,
   defaultPositiveMarks,
   defaultNegativeMarks,
   hasSections,
@@ -29,12 +38,19 @@ export default function PaperSettingsPanel({
   year,
   onDescriptionChange,
   onExamIdChange,
+  onFetchChildren,
   onDefaultPositiveMarksChange,
   onDefaultNegativeMarksChange,
   onHasSectionsChange,
   onDurationChange,
   onYearChange,
 }: PaperSettingsPanelProps) {
+  const treeItems: TreeItem[] = exams.map((exam) => ({
+    id: exam.id,
+    name: exam.name,
+    hasChildren: exam._count?.children > 0,
+  }));
+
   return (
     <div className="p-6 space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
       <section className="space-y-4">
@@ -48,61 +64,39 @@ export default function PaperSettingsPanel({
         <div className="space-y-4">
           <div className="space-y-1.5">
             <label className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/40 ml-1">
-              Description (Optional)
+              Exam
             </label>
             <div className="relative group">
-              <div className="absolute left-4 top-4 text-on-surface-variant/30 group-focus-within:text-primary transition-colors">
-                <FileText size={16} />
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/30 group-focus-within:text-primary transition-colors">
+                <Target size={16} />
               </div>
-              <textarea
-                value={description}
-                onChange={(e) => onDescriptionChange(e.target.value)}
-                placeholder="Brief overview of this paper..."
-                className="w-full bg-surface-container-lowest border border-outline-variant/10 rounded-2xl p-4 pl-12 text-sm text-on-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all min-h-[100px] resize-none"
+              <HierarchicalSelect
+                value={examId}
+                initialData={treeItems}
+                onChange={onExamIdChange}
+                onFetchChildren={onFetchChildren}
+                placeholder="Select Exam"
+                selectedLabel={selectedLabel}
+                triggerClassName="!pl-12 !p-3 !text-sm !border-outline-variant/10 !bg-surface-container-lowest !rounded-2xl !font-normal"
+                inputClassName="!text-sm !font-normal !placeholder:font-normal"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/40 ml-1">
-                Exam
-              </label>
-              <div className="relative group">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/30 group-focus-within:text-primary transition-colors">
-                  <Target size={16} />
-                </div>
-                <select
-                  value={examId}
-                  onChange={(e) => onExamIdChange(e.target.value)}
-                  className="w-full bg-surface-container-lowest border border-outline-variant/10 rounded-2xl p-3.5 pl-12 text-sm text-on-background appearance-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                >
-                  <option value="">Select Exam</option>
-                  <option value="exam-1">JEE Advanced</option>
-                  <option value="exam-2">JEE Main</option>
-                  <option value="exam-3">NEET</option>
-                </select>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant/20">
-                  <ChevronDown size={14} />
-                </div>
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/40 ml-1">
+              Year (Optional)
+            </label>
+            <div className="relative group">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/30 group-focus-within:text-primary transition-colors">
+                <Calendar size={16} />
               </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/40 ml-1">
-                Year (Optional)
-              </label>
-              <div className="relative group">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/30 group-focus-within:text-primary transition-colors">
-                  <Calendar size={16} />
-                </div>
-                <input
-                  type="number"
-                  value={year || ''}
-                  onChange={(e) => onYearChange(e.target.value ? Number(e.target.value) : 0)}
-                  className="w-full bg-surface-container-lowest border border-outline-variant/10 rounded-2xl p-3.5 pl-12 text-sm text-on-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                />
-              </div>
+              <input
+                type="number"
+                value={year || ''}
+                onChange={(e) => onYearChange(e.target.value ? Number(e.target.value) : 0)}
+                className="w-full bg-surface-container-lowest border border-outline-variant/10 rounded-2xl p-3.5 pl-12 text-sm text-on-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              />
             </div>
           </div>
         </div>

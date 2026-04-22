@@ -1,6 +1,7 @@
 'use client';
 
 import { paperService } from '@/components/features/papers/services';
+import { examService } from '@/components/features/exams/services';
 import { usePaperBuilder } from '@/components/features/paper-builder/hooks/use-paper-builder';
 import { Paper } from '@/components/features/papers/types';
 import { useQuery } from '@tanstack/react-query';
@@ -30,9 +31,22 @@ export default function PaperBuilder({ id }: PaperBuilderProps) {
     queryFn: () => paperService.getPaper(id),
   });
 
+  const { data: examsResult } = useQuery({
+    queryKey: ['exams'],
+    queryFn: () => examService.getExams(null, 1, 'all'),
+  });
+
   const paper = paperResult?.data as Paper | undefined;
+  const exams = (examsResult?.data as any[]) || [];
 
   const b = usePaperBuilder(id, paper, isSuccess);
+
+  // Fetch specific exam details to get the fullPath for selectedLabel
+  const { data: selectedExamResult } = useQuery({
+    queryKey: ['exam', b.selectedExamId],
+    queryFn: () => (b.selectedExamId ? examService.getExam(b.selectedExamId) : null),
+    enabled: !!b.selectedExamId,
+  });
 
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden animate-in fade-in duration-700">
@@ -42,6 +56,7 @@ export default function PaperBuilder({ id }: PaperBuilderProps) {
         isDirty={b.isDirty}
         isSaving={b.isSaving}
         onSave={b.handleSave}
+        onPublish={b.handlePublish}
         onBack={() => router.push('/papers')}
       />
 
@@ -57,7 +72,7 @@ export default function PaperBuilder({ id }: PaperBuilderProps) {
           editingSectionTitle={b.editingSectionTitle}
           draggedQuestionId={b.draggedQuestionId}
           draggedSectionId={b.draggedSectionId}
-          totalQuestionsCount={paper?._count?.questions ?? 0}
+          totalQuestionsCount={b.allQuestions.length}
           onEditingSectionTitleChange={b.setEditingSectionTitle}
           onSelectQuestion={b.handleSelectQuestion}
           onToggleSection={b.toggleSection}
@@ -138,6 +153,8 @@ export default function PaperBuilder({ id }: PaperBuilderProps) {
               <PaperSettingsPanel
                 description={b.paperDescription}
                 examId={b.selectedExamId}
+                exams={exams}
+                selectedLabel={selectedExamResult?.data?.fullPath}
                 defaultPositiveMarks={b.defaultPositiveMarks}
                 defaultNegativeMarks={b.defaultNegativeMarks}
                 hasSections={b.hasSections}
@@ -145,6 +162,14 @@ export default function PaperBuilder({ id }: PaperBuilderProps) {
                 year={b.paperYear}
                 onDescriptionChange={b.setPaperDescription}
                 onExamIdChange={b.setSelectedExamId}
+                onFetchChildren={async (parentId) => {
+                  const result = await examService.getExams(parentId, 1, 'all');
+                  return (result.data as any[]).map((exam) => ({
+                    id: exam.id,
+                    name: exam.name,
+                    hasChildren: exam._count?.children > 0,
+                  }));
+                }}
                 onDefaultPositiveMarksChange={b.setDefaultPositiveMarks}
                 onDefaultNegativeMarksChange={b.setDefaultNegativeMarks}
                 onHasSectionsChange={b.setHasSections}

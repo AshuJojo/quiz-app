@@ -8,6 +8,7 @@ interface BuilderHeaderProps {
   isDirty: boolean;
   isSaving: boolean;
   onSave: () => void;
+  onPublish: () => void;
   onBack: () => void;
 }
 
@@ -17,6 +18,7 @@ export default function BuilderHeader({
   isDirty,
   isSaving,
   onSave,
+  onPublish,
   onBack,
 }: BuilderHeaderProps) {
   return (
@@ -55,7 +57,11 @@ export default function BuilderHeader({
           )}
           {isSaving ? 'Saving...' : 'Save Progress'}
         </button>
-        <button className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all select-none">
+        <button
+          onClick={onPublish}
+          disabled={isSaving}
+          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 hover:bg-primary/90 transition-all select-none disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           <Rocket size={16} strokeWidth={3} />
           Publish
         </button>
