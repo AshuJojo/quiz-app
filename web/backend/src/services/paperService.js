@@ -36,24 +36,11 @@ exports.getPapers = async (examId, search, page = 1, limit = 10) => {
 exports.getPaperById = async (id) => {
   const paper = await prisma.paper.findUnique({
     where: { id },
-    include: {
-      exam: { select: { name: true, slug: true } },
-      sections: {
-        include: { questions: { orderBy: { order: 'asc' } } },
-        orderBy: { order: 'asc' },
-      },
-      _count: { select: { questions: true } },
-    },
   });
 
   if (!paper) return null;
 
-  const result = { ...paper };
-  if (paper.examId) {
-    result.exam = { ...paper.exam, fullPath: await getExamPath(paper.examId) };
-  }
-
-  return result;
+  return paper;
 };
 
 exports.createPaper = async (data) => {
