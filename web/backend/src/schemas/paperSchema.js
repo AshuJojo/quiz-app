@@ -17,7 +17,7 @@ exports.createPaperSchema = z.object({
       .int()
       .nonnegative({ message: 'Duration must be a non-negative integer' })
       .optional(),
-    year: z.number().int().optional().nullable(),
+    paperDate: z.coerce.date().optional().nullable(),
     isPublished: z.boolean().optional(),
   }),
 });
@@ -43,7 +43,7 @@ exports.updatePaperSchema = z.object({
         .int()
         .nonnegative({ message: 'Duration must be a non-negative integer' })
         .optional(),
-      year: z.number().int().optional().nullable(),
+      paperDate: z.coerce.date().optional().nullable(),
       isPublished: z.boolean().optional(),
     })
     .refine((data) => Object.keys(data).length > 0, {

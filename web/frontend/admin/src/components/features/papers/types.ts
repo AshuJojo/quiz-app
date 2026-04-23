@@ -9,7 +9,7 @@ export const PaperSchema = z.object({
   positiveMarks: z.coerce.number().nonnegative().optional().default(1),
   negativeMarks: z.coerce.number().nonnegative().optional().default(0),
   duration: z.coerce.number().nonnegative().optional().default(0),
-  year: z.coerce.number().optional().nullable(),
+  paperDate: z.coerce.date().optional().nullable(),
   isPublished: z.boolean().default(false),
 });
 
@@ -58,7 +58,7 @@ export interface Paper {
   positiveMarks: number;
   negativeMarks: number;
   duration: number;
-  year?: number | null;
+  paperDate?: Date | string | null;
   isPublished: boolean;
   exam: {
     name: string;

@@ -15,7 +15,8 @@ interface PaperSettingsPanelProps {
   defaultNegativeMarks: number;
   hasSections: boolean;
   duration: number;
-  year: number;
+  paperDate: Date | null;
+  hasPaperDate: boolean;
   onDescriptionChange: (v: string) => void;
   onExamIdChange: (v: string) => void;
   onFetchChildren: (parentId: string) => Promise<any[]>;
@@ -23,7 +24,8 @@ interface PaperSettingsPanelProps {
   onDefaultNegativeMarksChange: (v: number) => void;
   onHasSectionsChange: (v: boolean) => void;
   onDurationChange: (v: number) => void;
-  onYearChange: (v: number) => void;
+  onPaperDateChange: (v: Date | null) => void;
+  onHasPaperDateChange: (v: boolean) => void;
 }
 
 export default function PaperSettingsPanel({
@@ -35,7 +37,8 @@ export default function PaperSettingsPanel({
   defaultNegativeMarks,
   hasSections,
   duration,
-  year,
+  paperDate,
+  hasPaperDate,
   onDescriptionChange,
   onExamIdChange,
   onFetchChildren,
@@ -43,7 +46,8 @@ export default function PaperSettingsPanel({
   onDefaultNegativeMarksChange,
   onHasSectionsChange,
   onDurationChange,
-  onYearChange,
+  onPaperDateChange,
+  onHasPaperDateChange,
 }: PaperSettingsPanelProps) {
   const treeItems: TreeItem[] = exams.map((exam) => ({
     id: exam.id,
@@ -83,21 +87,59 @@ export default function PaperSettingsPanel({
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/40 ml-1">
-              Year (Optional)
-            </label>
-            <div className="relative group">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/30 group-focus-within:text-primary transition-colors">
-                <Calendar size={16} />
+          <div className="space-y-4 pt-4 border-t border-outline-variant/5">
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-surface-container-low transition-all">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-surface-container-highest flex items-center justify-center text-primary shadow-sm">
+                  <Calendar size={18} />
+                </div>
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-widest text-on-surface">
+                    Paper Date
+                  </p>
+                  <p className="text-[9px] text-on-surface-variant/50">
+                    Specify the original paper year
+                  </p>
+                </div>
               </div>
-              <input
-                type="number"
-                value={year || ''}
-                onChange={(e) => onYearChange(e.target.value ? Number(e.target.value) : 0)}
-                className="w-full bg-surface-container-lowest border border-outline-variant/10 rounded-2xl p-3.5 pl-12 text-sm text-on-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-              />
+              <button
+                onClick={() => onHasPaperDateChange(!hasPaperDate)}
+                className={`relative w-11 h-6 rounded-full transition-colors duration-300 focus:outline-none ${
+                  hasPaperDate ? 'bg-primary' : 'bg-outline-variant/30'
+                }`}
+              >
+                <div
+                  className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform duration-300 shadow-sm ${
+                    hasPaperDate ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
             </div>
+
+            {hasPaperDate && (
+              <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
+                <label className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/40 ml-1">
+                  Select Date
+                </label>
+                <div className="relative group">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/30 group-focus-within:text-primary transition-colors">
+                    <Calendar size={16} />
+                  </div>
+                  <input
+                    type="date"
+                    value={
+                      paperDate instanceof Date && !isNaN(paperDate.getTime())
+                        ? paperDate.toISOString().split('T')[0]
+                        : ''
+                    }
+                    onChange={(e) =>
+                      onPaperDateChange(e.target.value ? new Date(e.target.value) : null)
+                    }
+                    className="w-full bg-surface-container-lowest border border-outline-variant/10 rounded-2xl p-3.5 pl-12 text-sm text-on-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </section>

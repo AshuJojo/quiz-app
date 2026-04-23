@@ -159,7 +159,8 @@ export default function PaperBuilder({ id }: PaperBuilderProps) {
                 defaultNegativeMarks={b.defaultNegativeMarks}
                 hasSections={b.hasSections}
                 duration={b.paperDuration}
-                year={b.paperYear}
+                paperDate={b.paperDate}
+                hasPaperDate={b.hasPaperDate}
                 onDescriptionChange={b.setPaperDescription}
                 onExamIdChange={b.setSelectedExamId}
                 onFetchChildren={async (parentId) => {
@@ -174,7 +175,8 @@ export default function PaperBuilder({ id }: PaperBuilderProps) {
                 onDefaultNegativeMarksChange={b.setDefaultNegativeMarks}
                 onHasSectionsChange={b.setHasSections}
                 onDurationChange={b.setPaperDuration}
-                onYearChange={b.setPaperYear}
+                onPaperDateChange={b.setPaperDate}
+                onHasPaperDateChange={b.setHasPaperDate}
               />
             )}
           </div>

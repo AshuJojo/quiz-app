@@ -37,7 +37,8 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
   const [defaultNegativeMarks, setDefaultNegativeMarks] = useState(0);
   const [hasSections, setHasSections] = useState(true);
   const [paperDuration, setPaperDuration] = useState(180);
-  const [paperYear, setPaperYear] = useState(new Date().getFullYear());
+  const [paperDate, setPaperDate] = useState<Date | null>(new Date());
+  const [hasPaperDate, setHasPaperDate] = useState(false);
 
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
@@ -56,7 +57,8 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
       setDefaultNegativeMarks(paper.negativeMarks ?? 0);
       setHasSections(paper.hasSections ?? true);
       setPaperDuration(paper.duration ?? 180);
-      setPaperYear(paper.year || new Date().getFullYear());
+      setPaperDate(paper.paperDate ? new Date(paper.paperDate) : new Date());
+      setHasPaperDate(!!paper.paperDate);
     }
   }, [paper]);
 
@@ -180,7 +182,10 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
         defaultNegativeMarks !== (paper.negativeMarks ?? 0) ||
         hasSections !== (paper.hasSections ?? true) ||
         paperDuration !== (paper.duration ?? 180) ||
-        paperYear !== (paper.year || new Date().getFullYear());
+        hasPaperDate !== !!paper.paperDate ||
+        (hasPaperDate &&
+          (paperDate?.toISOString() || '') !==
+            (paper.paperDate ? new Date(paper.paperDate).toISOString() : ''));
 
       if (isPaperDirty) setIsDirty(true);
     }
@@ -192,7 +197,8 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
     defaultNegativeMarks,
     hasSections,
     paperDuration,
-    paperYear,
+    paperDate,
+    hasPaperDate,
   ]);
 
   const activeQuestionIndex = useMemo(
@@ -472,7 +478,7 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
           negativeMarks: defaultNegativeMarks,
           hasSections,
           duration: paperDuration,
-          year: paperYear,
+          paperDate: hasPaperDate ? paperDate : null,
           isPublished: isPublishing ? true : undefined,
         };
 
@@ -521,7 +527,8 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
       defaultNegativeMarks,
       hasSections,
       paperDuration,
-      paperYear,
+      paperDate,
+      hasPaperDate,
     ]
   );
 
@@ -572,8 +579,10 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
     setHasSections,
     paperDuration,
     setPaperDuration,
-    paperYear,
-    setPaperYear,
+    paperDate,
+    setPaperDate,
+    hasPaperDate,
+    setHasPaperDate,
     handleSelectQuestion,
     toggleSection,
     handleStartEditSection,

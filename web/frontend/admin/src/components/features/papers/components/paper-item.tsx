@@ -76,12 +76,12 @@ export function PaperItem({
             <Clock className="w-3.5 h-3.5 text-primary/60" />
             {paper.duration} Minutes
           </span>
-          {paper.year && (
+          {paper.paperDate && (
             <>
               <span className="w-1 h-1 rounded-full bg-outline-variant/40" />
               <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant/70">
                 <Calendar className="w-3.5 h-3.5 text-primary/60" />
-                Year {paper.year}
+                {new Date(paper.paperDate).toLocaleDateString()}
               </span>
             </>
           )}
