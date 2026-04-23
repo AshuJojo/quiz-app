@@ -383,9 +383,23 @@ export function usePaperBuilder(
         )
       )
         return;
+
       if (!sectionId.startsWith('temp-')) {
         setDeletedSectionIds((prev) => new Set(prev).add(sectionId));
       }
+
+      // Remove this section's questions from deletedQuestionIds — cascade handles them
+      const sectionQIds = new Set(
+        (section?.questions ?? []).filter((q) => !q.id.startsWith('temp-')).map((q) => q.id)
+      );
+      if (sectionQIds.size > 0) {
+        setDeletedQuestionIds((prev) => {
+          const next = new Set(prev);
+          sectionQIds.forEach((id) => next.delete(id));
+          return next;
+        });
+      }
+
       if (section?.questions?.some((q) => q.id === activeQuestionId)) {
         setActiveQuestionId(null);
       }

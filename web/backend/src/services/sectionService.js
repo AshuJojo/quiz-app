@@ -132,19 +132,6 @@ exports.deleteSection = async (id) => {
     throw error;
   }
 
-  // Find or create the uncategorized section for this paper
-  const uncategorized = await prisma.section.findFirst({
-    where: { paperId: section.paperId, isDefault: true },
-  });
-
-  // Move questions to uncategorized
-  if (uncategorized) {
-    await prisma.question.updateMany({
-      where: { sectionId: id },
-      data: { sectionId: uncategorized.id },
-    });
-  }
-
   return prisma.section.delete({ where: { id } });
 };
 
@@ -152,7 +139,7 @@ exports.deleteSection = async (id) => {
 exports.deleteSections = async (ids) => {
   const existing = await prisma.section.findMany({
     where: { id: { in: ids } },
-    select: { id: true, isDefault: true, paperId: true },
+    select: { id: true, isDefault: true },
   });
   const foundIds = new Set(existing.map((s) => s.id));
   const missing = ids.filter((id) => !foundIds.has(id));
@@ -169,24 +156,5 @@ exports.deleteSections = async (ids) => {
     throw error;
   }
 
-  // For each affected paper, find its uncategorized section and move questions
-  const paperIds = [...new Set(existing.map((s) => s.paperId))];
-  const uncategorizedSections = await prisma.section.findMany({
-    where: { paperId: { in: paperIds }, isDefault: true },
-    select: { id: true, paperId: true },
-  });
-  const uncategorizedMap = Object.fromEntries(uncategorizedSections.map((s) => [s.paperId, s.id]));
-
-  await prisma.$transaction(async (tx) => {
-    for (const section of existing) {
-      const uncategorizedId = uncategorizedMap[section.paperId];
-      if (uncategorizedId) {
-        await tx.question.updateMany({
-          where: { sectionId: section.id },
-          data: { sectionId: uncategorizedId },
-        });
-      }
-    }
-    await tx.section.deleteMany({ where: { id: { in: ids } } });
-  });
+  return prisma.section.deleteMany({ where: { id: { in: ids } } });
 };
