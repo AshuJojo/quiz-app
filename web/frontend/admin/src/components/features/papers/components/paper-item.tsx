@@ -74,7 +74,14 @@ export function PaperItem({
           <span className="w-1 h-1 rounded-full bg-outline-variant/40" />
           <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-on-surface-variant/70">
             <Clock className="w-3.5 h-3.5 text-primary/60" />
-            {paper.duration} Minutes
+            {(() => {
+              const h = Math.floor(paper.duration / 3600);
+              const m = Math.floor((paper.duration % 3600) / 60);
+              const s = paper.duration % 60;
+              if (h > 0) return `${h}h ${m}m ${s}s`;
+              if (m > 0) return `${m}m ${s}s`;
+              return `${s}s`;
+            })()}
           </span>
           {paper.paperDate && (
             <>

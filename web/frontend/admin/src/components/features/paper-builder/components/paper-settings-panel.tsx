@@ -177,22 +177,45 @@ export default function PaperSettingsPanel({
           </div>
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <label className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/40 ml-1">
-            Duration (Optional)
+            Duration (HH:MM:SS)
           </label>
-          <div className="relative group">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/30 group-focus-within:text-primary transition-colors">
-              <Clock size={16} />
-            </div>
-            <input
-              type="number"
-              value={duration || ''}
-              onChange={(e) => onDurationChange(e.target.value ? Number(e.target.value) : 0)}
-              placeholder="Minutes"
-              className="w-full bg-surface-container-lowest border border-outline-variant/10 rounded-2xl p-3.5 pl-12 text-sm text-on-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-            />
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: 'H', value: Math.floor(duration / 3600), max: 99 },
+              { label: 'M', value: Math.floor((duration % 3600) / 60), max: 59 },
+              { label: 'S', value: duration % 60, max: 59 },
+            ].map((unit, i) => (
+              <div key={unit.label} className="relative group/unit">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-on-surface-variant/30 group-focus-within/unit:text-primary pointer-events-none transition-colors">
+                  {unit.label}
+                </div>
+                <input
+                  type="number"
+                  min={0}
+                  max={unit.max}
+                  value={unit.value || ''}
+                  onChange={(e) => {
+                    const val = Math.min(unit.max, Math.max(0, Number(e.target.value)));
+                    const hms = [
+                      Math.floor(duration / 3600),
+                      Math.floor((duration % 3600) / 60),
+                      duration % 60,
+                    ];
+                    hms[i] = val;
+                    onDurationChange(hms[0] * 3600 + hms[1] * 60 + hms[2]);
+                  }}
+                  className="w-full bg-surface-container-lowest border border-outline-variant/10 rounded-2xl p-3.5 pl-8 text-sm font-black text-center text-on-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-on-surface-variant/20"
+                  placeholder="00"
+                />
+              </div>
+            ))}
           </div>
+          <p className="text-[9px] text-on-surface-variant/40 ml-1 italic">
+            Total time: {Math.floor(duration / 3600)}Hr {Math.floor((duration % 3600) / 60)}Min{' '}
+            {(duration % 60).toString().padStart(2, '0')}s
+          </p>
         </div>
       </section>
 

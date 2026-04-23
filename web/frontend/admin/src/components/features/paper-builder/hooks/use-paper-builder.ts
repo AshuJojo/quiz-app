@@ -36,7 +36,7 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
   const [defaultPositiveMarks, setDefaultPositiveMarks] = useState(1);
   const [defaultNegativeMarks, setDefaultNegativeMarks] = useState(0);
   const [hasSections, setHasSections] = useState(true);
-  const [paperDuration, setPaperDuration] = useState(180);
+  const [paperDuration, setPaperDuration] = useState(0);
   const [paperDate, setPaperDate] = useState<Date | null>(new Date());
   const [hasPaperDate, setHasPaperDate] = useState(false);
 
@@ -56,7 +56,7 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
       setDefaultPositiveMarks(paper.positiveMarks ?? 1);
       setDefaultNegativeMarks(paper.negativeMarks ?? 0);
       setHasSections(paper.hasSections ?? true);
-      setPaperDuration(paper.duration ?? 180);
+      setPaperDuration(paper.duration ?? 0);
       setPaperDate(paper.paperDate ? new Date(paper.paperDate) : new Date());
       setHasPaperDate(!!paper.paperDate);
     }
@@ -181,7 +181,7 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
         defaultPositiveMarks !== (paper.positiveMarks ?? 1) ||
         defaultNegativeMarks !== (paper.negativeMarks ?? 0) ||
         hasSections !== (paper.hasSections ?? true) ||
-        paperDuration !== (paper.duration ?? 180) ||
+        paperDuration !== (paper.duration ?? 0) ||
         hasPaperDate !== !!paper.paperDate ||
         (hasPaperDate &&
           (paperDate?.toISOString() || '') !==
