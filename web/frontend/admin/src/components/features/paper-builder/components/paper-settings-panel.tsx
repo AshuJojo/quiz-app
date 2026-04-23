@@ -1,10 +1,10 @@
 'use client';
 
-import { Calendar, Clock, Layers, Target } from 'lucide-react';
 import {
   HierarchicalSelect,
   TreeItem,
 } from '@/components/ui/hierarchical-select/hierarchical-select';
+import { Calendar, Layers, Target } from 'lucide-react';
 
 interface PaperSettingsPanelProps {
   description: string;
@@ -66,6 +66,20 @@ export default function PaperSettingsPanel({
         </div>
 
         <div className="space-y-4">
+          <div className="space-y-1.5 pt-4 border-t border-outline-variant/5">
+            <label className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/40 ml-1">
+              Paper Description
+            </label>
+
+            <textarea
+              value={description}
+              onChange={(e) => onDescriptionChange(e.target.value)}
+              placeholder="Enter paper description..."
+              rows={3}
+              className="w-full bg-surface-container-lowest border border-outline-variant/10 rounded-2xl p-3.5 text-sm text-on-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none placeholder:text-on-surface-variant/30"
+            />
+          </div>
+
           <div className="space-y-1.5">
             <label className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/40 ml-1">
               Exam
