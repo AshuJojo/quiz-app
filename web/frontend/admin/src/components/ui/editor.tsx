@@ -27,10 +27,23 @@ export default function Editor({
     }
 
     return () => {
-      if (ejInstance.current) {
-        ejInstance.current.destroy();
-        ejInstance.current = null;
-      }
+      const cleanup = async () => {
+        if (ejInstance.current) {
+          try {
+            await ejInstance.current.isReady;
+            if (typeof ejInstance.current.destroy === 'function') {
+              ejInstance.current.destroy();
+            }
+          } catch (e) {
+            // If destroy fails or isReady rejects, just null out the instance
+            console.warn('EditorJS cleanup notice:', e);
+          } finally {
+            ejInstance.current = null;
+          }
+        }
+      };
+
+      cleanup();
       isInitializing.current = false;
     };
   }, []);

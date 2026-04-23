@@ -82,6 +82,8 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
           options: [
             { id: generateId(), content: { blocks: [] }, isCorrect: true },
             { id: generateId(), content: { blocks: [] }, isCorrect: false },
+            { id: generateId(), content: { blocks: [] }, isCorrect: false },
+            { id: generateId(), content: { blocks: [] }, isCorrect: false },
           ],
           order: 0,
           type: 'SINGLE_CHOICE',
@@ -377,6 +379,8 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
         content: { blocks: [{ type: 'paragraph', data: { text: '' } }] },
         options: [
           { id: generateId(), content: { blocks: [] }, isCorrect: true },
+          { id: generateId(), content: { blocks: [] }, isCorrect: false },
+          { id: generateId(), content: { blocks: [] }, isCorrect: false },
           { id: generateId(), content: { blocks: [] }, isCorrect: false },
         ],
         order: 0,
