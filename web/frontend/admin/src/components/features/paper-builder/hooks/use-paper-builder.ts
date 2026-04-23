@@ -16,9 +16,23 @@ const generateId = () => {
   return Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
 };
 
-export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuccess: boolean) {
+export function usePaperBuilder(
+  paperId: string,
+  paper: Paper | undefined,
+  sections: Section[] | undefined,
+  questions: Question[] | undefined,
+  isSuccess: boolean
+) {
   const queryClient = useQueryClient();
-  const initialSections = paper?.sections || [];
+
+  const initialSections = useMemo(() => {
+    if (!sections) return [];
+    // Combine sections and questions
+    return sections.map((s) => ({
+      ...s,
+      questions: questions?.filter((q) => q.sectionId === s.id) || [],
+    }));
+  }, [sections, questions]);
 
   const [localSections, setLocalSections] = useState<Section[]>([]);
   const [isDirty, setIsDirty] = useState(false);
@@ -533,6 +547,8 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
         setDeletedQuestionIds(new Set());
         setDeletedSectionIds(new Set());
         queryClient.invalidateQueries({ queryKey: ['paper', paperId] });
+        queryClient.invalidateQueries({ queryKey: ['paper-sections', paperId] });
+        queryClient.invalidateQueries({ queryKey: ['paper-questions', paperId] });
       } catch (error) {
         console.error('Failed to save paper:', error);
         toast.error('Failed to save paper changes');

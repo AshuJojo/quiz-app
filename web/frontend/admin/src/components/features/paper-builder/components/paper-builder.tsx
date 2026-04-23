@@ -2,8 +2,9 @@
 
 import { paperService } from '@/components/features/papers/services';
 import { examService } from '@/components/features/exams/services';
+import { sectionService, questionService } from '../services';
 import { usePaperBuilder } from '@/components/features/paper-builder/hooks/use-paper-builder';
-import { Paper } from '@/components/features/papers/types';
+import { Paper, Section, Question } from '@/components/features/papers/types';
 import { useQuery } from '@tanstack/react-query';
 import { LayoutGrid, Settings2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -22,13 +23,19 @@ export default function PaperBuilder({ id }: PaperBuilderProps) {
   const router = useRouter();
   const [sidebarTab, setSidebarTab] = useState<'quiz' | 'paper'>('quiz');
 
-  const {
-    data: paperResult,
-    isLoading,
-    isSuccess,
-  } = useQuery({
+  const { data: paperResult, isLoading: isPaperLoading } = useQuery({
     queryKey: ['paper', id],
     queryFn: () => paperService.getPaper(id),
+  });
+
+  const { data: sectionsResult, isLoading: isSectionsLoading } = useQuery({
+    queryKey: ['paper-sections', id],
+    queryFn: () => sectionService.getSectionsByPaperId(id),
+  });
+
+  const { data: questionsResult, isLoading: isQuestionsLoading } = useQuery({
+    queryKey: ['paper-questions', id],
+    queryFn: () => questionService.getQuestions(id),
   });
 
   const { data: examsResult } = useQuery({
@@ -37,9 +44,14 @@ export default function PaperBuilder({ id }: PaperBuilderProps) {
   });
 
   const paper = paperResult?.data as Paper | undefined;
+  const sections = sectionsResult?.data as Section[] | undefined;
+  const questions = questionsResult?.data as Question[] | undefined;
   const exams = (examsResult?.data as any[]) || [];
 
-  const b = usePaperBuilder(id, paper, isSuccess);
+  const isLoading = isPaperLoading || isSectionsLoading || isQuestionsLoading;
+  const isSuccess = !!paper && !!sections && !!questions;
+
+  const b = usePaperBuilder(id, paper, sections, questions, isSuccess);
 
   // Fetch specific exam details to get the fullPath for selectedLabel
   const { data: selectedExamResult } = useQuery({
