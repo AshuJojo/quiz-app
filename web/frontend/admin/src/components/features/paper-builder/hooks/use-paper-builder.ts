@@ -70,7 +70,7 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
       );
 
       if (totalQuestionsCount === 0) {
-        const sectionId = initialSections[0]?.id || generateId();
+        const sectionId = initialSections[0]?.id || `temp-${generateId()}`;
         const sectionTitle = initialSections[0]?.title || 'Uncategorized';
         const questionId = `temp-${generateId()}`;
 
@@ -158,21 +158,13 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
         setActiveQuestionId(firstQ.id);
         setQuestionContent(firstQ.question);
         setOptions(firstQ.options);
+        setQuestionExplanation(firstQ.explanation || '');
+        setQuestionPositiveMarks(firstQ.positiveMarks ?? null);
+        setQuestionNegativeMarks(firstQ.negativeMarks ?? null);
         setIsDirty(false);
       }
     }
   }, [localSections, activeQuestionId]);
-
-  useEffect(() => {
-    if (activeQuestionId) {
-      const q = allQuestions.find((q) => q.id === activeQuestionId);
-      if (q) {
-        setQuestionExplanation(q.explanation || '');
-        setQuestionPositiveMarks(q.positiveMarks ?? null);
-        setQuestionNegativeMarks(q.negativeMarks ?? null);
-      }
-    }
-  }, [activeQuestionId, allQuestions]);
 
   // Dirty state for global paper fields
   useEffect(() => {
@@ -217,6 +209,9 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
     setActiveQuestionId(q.id);
     setQuestionContent(q.question);
     setOptions(q.options);
+    setQuestionExplanation(q.explanation || '');
+    setQuestionPositiveMarks(q.positiveMarks ?? null);
+    setQuestionNegativeMarks(q.negativeMarks ?? null);
   }, []);
 
   const toggleSection = useCallback(
@@ -422,7 +417,7 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
 
   const handleSave = useCallback(
     async (isPublishing = false) => {
-      if (!isDirty && !isPublishing && !isSaving) return;
+      if ((!isDirty && !isPublishing) || isSaving) return;
       setIsSaving(true);
       try {
         const allQs = localSections.flatMap((s) => s.questions || []);
@@ -486,25 +481,53 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
           isPublished: isPublishing ? true : undefined,
         };
 
-        const promises: Promise<any>[] = [];
+        // 1. Paper
+        await paperService.updatePaper(paperId, paperUpdate);
 
-        // 1. Update Paper Global Settings
-        promises.push(paperService.updatePaper(paperId, paperUpdate));
+        // 2. Sections — update/delete in parallel, then create to get real IDs back
+        await Promise.all([
+          sectionUpdates.length > 0 ? sectionService.updateSections(sectionUpdates) : null,
+          deletedSectionIds.size > 0
+            ? sectionService.deleteSections(Array.from(deletedSectionIds))
+            : null,
+        ]);
 
-        // 2. Update Questions
-        if (questionUpdates.length > 0)
-          promises.push(questionService.updateQuestions(questionUpdates));
-        if (newQuestions.length > 0) promises.push(questionService.createQuestions(newQuestions));
-        if (deletedQuestionIds.size > 0)
-          promises.push(questionService.deleteQuestions(Array.from(deletedQuestionIds)));
+        // Build tempId → realId map from newly created sections
+        const tempSectionIds = localSections
+          .filter((s) => s.id.startsWith('temp-'))
+          .map((s) => s.id);
 
-        // 3. Update Sections
-        if (sectionUpdates.length > 0) promises.push(sectionService.updateSections(sectionUpdates));
-        if (newSections.length > 0) promises.push(sectionService.createSections(newSections));
-        if (deletedSectionIds.size > 0)
-          promises.push(sectionService.deleteSections(Array.from(deletedSectionIds)));
+        const sectionIdMap = new Map<string, string>();
+        if (newSections.length > 0) {
+          const result = await sectionService.createSections(newSections);
+          const created: Array<{ id: string }> = result.data ?? [];
+          tempSectionIds.forEach((tempId, idx) => {
+            if (created[idx]) sectionIdMap.set(tempId, created[idx].id);
+          });
+        }
 
-        await Promise.all(promises);
+        // 3. Questions — resolve any temp sectionIds to real ones, then save in parallel
+        const resolvedNewQuestions = newQuestions.map((q) => ({
+          ...q,
+          sectionId: sectionIdMap.get(q.sectionId) ?? q.sectionId,
+        }));
+
+        const resolvedQuestionUpdates = questionUpdates.map((q) => ({
+          ...q,
+          sectionId: sectionIdMap.get(q.sectionId!) ?? q.sectionId,
+        }));
+
+        await Promise.all([
+          resolvedQuestionUpdates.length > 0
+            ? questionService.updateQuestions(resolvedQuestionUpdates)
+            : null,
+          resolvedNewQuestions.length > 0
+            ? questionService.createQuestions(resolvedNewQuestions)
+            : null,
+          deletedQuestionIds.size > 0
+            ? questionService.deleteQuestions(Array.from(deletedQuestionIds))
+            : null,
+        ]);
         toast.success(isPublishing ? 'Paper published successfully' : 'Paper saved successfully');
         setIsDirty(false);
         setDeletedQuestionIds(new Set());

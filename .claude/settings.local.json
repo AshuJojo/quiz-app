@@ -5,7 +5,8 @@
       "Bash(rm services/exam-service.ts services/paper-service.ts services/question-service.ts services/section-service.ts)",
       "Bash(rm components/shared/data-table/data-table.tsx components/shared/data-table/data-table-item.tsx)",
       "Bash(rm components/shared/hierarchical-select/hierarchical-select.tsx components/shared/hierarchical-select/hierarchical-option.tsx)",
-      "Bash(rm components/shared/editor.tsx)"
+      "Bash(rm components/shared/editor.tsx)",
+      "Bash(npx prisma *)"
     ]
   }
 }
