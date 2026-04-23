@@ -35,7 +35,7 @@ export interface Option {
 
 export interface Question {
   id: string;
-  content: any;
+  question: any;
   options: any[];
   correctAnswer?: any;
   explanation?: string | null;

@@ -180,7 +180,7 @@ export default function PaperNavigator({
                       <button
                         onClick={() => onSelectQuestion(q)}
                         title={(
-                          (q.content as any)?.blocks?.[0]?.data?.text || 'Empty Question'
+                          (q.question as any)?.blocks?.[0]?.data?.text || 'Empty Question'
                         ).replace(/<[^>]*>/g, '')}
                         className={`w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-black transition-all border-2 ${
                           activeQuestionId === q.id
@@ -222,7 +222,7 @@ export default function PaperNavigator({
                   <button
                     onClick={() => onSelectQuestion(q)}
                     title={(
-                      (q.content as any)?.blocks?.[0]?.data?.text || 'Empty Question'
+                      (q.question as any)?.blocks?.[0]?.data?.text || 'Empty Question'
                     ).replace(/<[^>]*>/g, '')}
                     className={`w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-black transition-all border-2 ${
                       activeQuestionId === q.id

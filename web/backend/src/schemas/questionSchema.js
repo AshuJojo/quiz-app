@@ -3,7 +3,7 @@ const { z } = require('zod');
 const questionItemSchema = z.object({
   paperId: z.string().uuid({ message: 'Invalid paper ID' }),
   sectionId: z.string().uuid({ message: 'Invalid section ID' }),
-  content: z.any(),
+  question: z.any(),
   options: z.array(z.any()),
   correctOptionIndex: z.number().int().min(0),
   explanation: z.string().optional().nullable(),
@@ -27,7 +27,7 @@ exports.updateQuestionSchema = z.object({
   body: z
     .object({
       sectionId: z.string().uuid({ message: 'Invalid section ID' }).optional(),
-      content: z.any().optional(),
+      question: z.any().optional(),
       options: z.array(z.any()).optional(),
       correctOptionIndex: z.number().int().min(0).optional(),
       explanation: z.string().optional().nullable(),
@@ -47,7 +47,7 @@ exports.bulkUpdateQuestionsSchema = z.object({
         z.object({
           id: z.string().uuid({ message: 'Invalid question ID' }),
           sectionId: z.string().uuid({ message: 'Invalid section ID' }).optional(),
-          content: z.any().optional(),
+          question: z.any().optional(),
           options: z.array(z.any()).optional(),
           correctOptionIndex: z.number().int().min(0).optional(),
           explanation: z.string().optional().nullable(),

@@ -67,7 +67,7 @@ model Question {
   sectionId          String
   section            Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   order              Int      @default(0)
-  content            Json
+  question            Json
   options            Json
   correctOptionIndex Int
   explanation        String?

@@ -78,7 +78,7 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
           id: questionId,
           sectionId,
           paperId,
-          content: { blocks: [{ type: 'paragraph', data: { text: '' } }] },
+          question: { blocks: [{ type: 'paragraph', data: { text: '' } }] },
           options: [
             { id: generateId(), content: { blocks: [] }, isCorrect: true },
             { id: generateId(), content: { blocks: [] }, isCorrect: false },
@@ -107,7 +107,7 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
 
         setLocalSections(updatedSections);
         setActiveQuestionId(questionId);
-        setQuestionContent(newQuestion.content);
+        setQuestionContent(newQuestion.question);
         setOptions(newQuestion.options);
       } else {
         setLocalSections(initialSections);
@@ -125,7 +125,7 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
               q.id === activeQuestionId
                 ? {
                     ...q,
-                    content: questionContent,
+                    question: questionContent,
                     options,
                     explanation: questionExplanation,
                     positiveMarks: questionPositiveMarks,
@@ -156,7 +156,7 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
       const firstQ = localSections[0]?.questions?.[0];
       if (firstQ) {
         setActiveQuestionId(firstQ.id);
-        setQuestionContent(firstQ.content);
+        setQuestionContent(firstQ.question);
         setOptions(firstQ.options);
         setIsDirty(false);
       }
@@ -215,7 +215,7 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
 
   const handleSelectQuestion = useCallback((q: Question) => {
     setActiveQuestionId(q.id);
-    setQuestionContent(q.content);
+    setQuestionContent(q.question);
     setOptions(q.options);
   }, []);
 
@@ -376,7 +376,7 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
         id: `temp-${generateId()}`,
         sectionId,
         paperId,
-        content: { blocks: [{ type: 'paragraph', data: { text: '' } }] },
+        question: { blocks: [{ type: 'paragraph', data: { text: '' } }] },
         options: [
           { id: generateId(), content: { blocks: [] }, isCorrect: true },
           { id: generateId(), content: { blocks: [] }, isCorrect: false },
@@ -431,7 +431,7 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
           .filter((q) => !q.id.startsWith('temp-'))
           .map((q, idx) => ({
             id: q.id,
-            content: q.content,
+            question: q.question,
             options: q.options,
             explanation: q.explanation,
             positiveMarks: q.positiveMarks,
@@ -444,7 +444,7 @@ export function usePaperBuilder(paperId: string, paper: Paper | undefined, isSuc
         const newQuestions = allQs
           .filter((q) => q.id.startsWith('temp-'))
           .map((q, idx) => ({
-            content: q.content,
+            question: q.question,
             options: q.options,
             explanation: q.explanation,
             positiveMarks: q.positiveMarks,
