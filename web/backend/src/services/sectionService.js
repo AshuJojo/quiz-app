@@ -86,11 +86,6 @@ exports.updateSection = async (id, data) => {
     error.statusCode = 404;
     throw error;
   }
-  if (section.isDefault && data.title !== undefined) {
-    const error = new Error('Cannot rename the default Uncategorized section');
-    error.statusCode = 400;
-    throw error;
-  }
   // Prevent changing isDefault flag
   delete data.isDefault;
 
@@ -114,14 +109,7 @@ exports.updateSections = async (updates) => {
     throw error;
   }
 
-  // Check if any update tries to rename a default section
-  const defaultIds = new Set(existing.filter((s) => s.isDefault).map((s) => s.id));
   for (const u of updates) {
-    if (defaultIds.has(u.id) && u.title !== undefined) {
-      const error = new Error('Cannot rename the default Uncategorized section');
-      error.statusCode = 400;
-      throw error;
-    }
     delete u.isDefault;
   }
 

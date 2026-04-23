@@ -28,15 +28,14 @@ export interface Section {
 }
 
 export interface Option {
-  id: string;
   content: any;
-  isCorrect: boolean;
 }
 
 export interface Question {
   id: string;
   question: any;
   options: any[];
+  correctOptionIndex: number;
   correctAnswer?: any;
   explanation?: string | null;
   positiveMarks?: number | null;

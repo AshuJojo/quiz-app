@@ -1,11 +1,11 @@
 'use client';
 
-import { paperService, questionService, sectionService } from '../services';
 import { Option, Paper, Question, Section } from '@/components/features/papers/types';
 import { OutputData } from '@editorjs/editorjs';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { paperService, questionService, sectionService } from '../services';
 
 const generateId = () => {
   try {
@@ -15,6 +15,13 @@ const generateId = () => {
   } catch {}
   return Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
 };
+
+const EMPTY_OPTIONS: Option[] = [
+  { content: { blocks: [] } },
+  { content: { blocks: [] } },
+  { content: { blocks: [] } },
+  { content: { blocks: [] } },
+];
 
 export function usePaperBuilder(
   paperId: string,
@@ -27,7 +34,6 @@ export function usePaperBuilder(
 
   const initialSections = useMemo(() => {
     if (!sections) return [];
-    // Combine sections and questions
     return sections.map((s) => ({
       ...s,
       questions: questions?.filter((q) => q.sectionId === s.id) || [],
@@ -58,6 +64,7 @@ export function usePaperBuilder(
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [questionContent, setQuestionContent] = useState<OutputData>({ blocks: [] });
   const [options, setOptions] = useState<Option[]>([]);
+  const [correctOptionIndex, setCorrectOptionIndex] = useState(0);
 
   const [questionExplanation, setQuestionExplanation] = useState('');
   const [questionPositiveMarks, setQuestionPositiveMarks] = useState<number | null>(null);
@@ -76,6 +83,7 @@ export function usePaperBuilder(
     }
   }, [paper]);
 
+  // Init: populate localSections once on first successful load
   useEffect(() => {
     if (isSuccess && initialSections && localSections.length === 0) {
       const totalQuestionsCount = initialSections.reduce(
@@ -87,18 +95,15 @@ export function usePaperBuilder(
         const sectionId = initialSections[0]?.id || `temp-${generateId()}`;
         const sectionTitle = initialSections[0]?.title || 'Uncategorized';
         const questionId = `temp-${generateId()}`;
+        const emptyContent = { blocks: [{ type: 'paragraph', data: { text: '' } }] };
 
         const newQuestion: Question = {
           id: questionId,
           sectionId,
           paperId,
-          question: { blocks: [{ type: 'paragraph', data: { text: '' } }] },
-          options: [
-            { id: generateId(), content: { blocks: [] }, isCorrect: true },
-            { id: generateId(), content: { blocks: [] }, isCorrect: false },
-            { id: generateId(), content: { blocks: [] }, isCorrect: false },
-            { id: generateId(), content: { blocks: [] }, isCorrect: false },
-          ],
+          question: emptyContent,
+          options: [...EMPTY_OPTIONS],
+          correctOptionIndex: 0,
           order: 0,
           type: 'SINGLE_CHOICE',
         };
@@ -121,14 +126,16 @@ export function usePaperBuilder(
 
         setLocalSections(updatedSections);
         setActiveQuestionId(questionId);
-        setQuestionContent(newQuestion.question);
-        setOptions(newQuestion.options);
+        setQuestionContent(emptyContent);
+        setOptions([...EMPTY_OPTIONS]);
+        setCorrectOptionIndex(0);
       } else {
         setLocalSections(initialSections);
       }
     }
   }, [isSuccess, initialSections, paperId, localSections.length]);
 
+  // Write-back: sync workspace state into the active question in localSections
   useEffect(() => {
     if (activeQuestionId && localSections.length > 0) {
       setLocalSections((prev) =>
@@ -141,6 +148,7 @@ export function usePaperBuilder(
                     ...q,
                     question: questionContent,
                     options,
+                    correctOptionIndex,
                     explanation: questionExplanation,
                     positiveMarks: questionPositiveMarks,
                     negativeMarks: questionNegativeMarks,
@@ -154,6 +162,7 @@ export function usePaperBuilder(
   }, [
     questionContent,
     options,
+    correctOptionIndex,
     activeQuestionId,
     questionExplanation,
     questionPositiveMarks,
@@ -165,13 +174,15 @@ export function usePaperBuilder(
     [localSections]
   );
 
+  // Auto-select the first question when none is active
   useEffect(() => {
     if (localSections.length > 0 && !activeQuestionId) {
       const firstQ = localSections[0]?.questions?.[0];
       if (firstQ) {
         setActiveQuestionId(firstQ.id);
         setQuestionContent(firstQ.question);
-        setOptions(firstQ.options);
+        setOptions(firstQ.options ?? []);
+        setCorrectOptionIndex(firstQ.correctOptionIndex ?? 0);
         setQuestionExplanation(firstQ.explanation || '');
         setQuestionPositiveMarks(firstQ.positiveMarks ?? null);
         setQuestionNegativeMarks(firstQ.negativeMarks ?? null);
@@ -222,7 +233,8 @@ export function usePaperBuilder(
   const handleSelectQuestion = useCallback((q: Question) => {
     setActiveQuestionId(q.id);
     setQuestionContent(q.question);
-    setOptions(q.options);
+    setOptions(q.options ?? []);
+    setCorrectOptionIndex(q.correctOptionIndex ?? 0);
     setQuestionExplanation(q.explanation || '');
     setQuestionPositiveMarks(q.positiveMarks ?? null);
     setQuestionNegativeMarks(q.negativeMarks ?? null);
@@ -331,12 +343,12 @@ export function usePaperBuilder(
     e.dataTransfer.dropEffect = 'move';
   }, []);
 
-  const handleToggleCorrect = useCallback((id: string) => {
-    setOptions((prev) => prev.map((opt) => ({ ...opt, isCorrect: opt.id === id })));
+  const handleSetCorrectOption = useCallback((index: number) => {
+    setCorrectOptionIndex(index);
   }, []);
 
-  const handleOptionContentChange = useCallback((optId: string, data: any) => {
-    setOptions((prev) => prev.map((opt) => (opt.id === optId ? { ...opt, content: data } : opt)));
+  const handleOptionContentChange = useCallback((index: number, data: any) => {
+    setOptions((prev) => prev.map((opt, i) => (i === index ? { ...opt, content: data } : opt)));
   }, []);
 
   const handleAddSection = useCallback(() => {
@@ -357,7 +369,11 @@ export function usePaperBuilder(
   const handleDeleteSection = useCallback(
     (sectionId: string) => {
       if (localSections.length <= 1) {
-        toast.error('Cannot delete the last section');
+        toast.error(
+          hasSections
+            ? 'Cannot delete the only section. Disable "Have Sections" or add another section first.'
+            : 'Cannot delete the last section.'
+        );
         return;
       }
       const section = localSections.find((s) => s.id === sectionId);
@@ -376,22 +392,19 @@ export function usePaperBuilder(
       setIsDirty(true);
       setLocalSections((prev) => prev.filter((s) => s.id !== sectionId));
     },
-    [localSections, activeQuestionId]
+    [localSections, activeQuestionId, hasSections]
   );
 
   const handleAddQuestion = useCallback(
     (sectionId: string) => {
+      const emptyContent = { blocks: [{ type: 'paragraph', data: { text: '' } }] };
       const newQuestion: Question = {
         id: `temp-${generateId()}`,
         sectionId,
         paperId,
-        question: { blocks: [{ type: 'paragraph', data: { text: '' } }] },
-        options: [
-          { id: generateId(), content: { blocks: [] }, isCorrect: true },
-          { id: generateId(), content: { blocks: [] }, isCorrect: false },
-          { id: generateId(), content: { blocks: [] }, isCorrect: false },
-          { id: generateId(), content: { blocks: [] }, isCorrect: false },
-        ],
+        question: emptyContent,
+        options: [...EMPTY_OPTIONS],
+        correctOptionIndex: 0,
         order: 0,
         type: 'SINGLE_CHOICE',
       };
@@ -401,6 +414,12 @@ export function usePaperBuilder(
         )
       );
       setActiveQuestionId(newQuestion.id);
+      setQuestionContent(emptyContent);
+      setOptions([...EMPTY_OPTIONS]);
+      setCorrectOptionIndex(0);
+      setQuestionExplanation('');
+      setQuestionPositiveMarks(null);
+      setQuestionNegativeMarks(null);
     },
     [paperId]
   );
@@ -419,14 +438,16 @@ export function usePaperBuilder(
   );
 
   const handleAddOption = useCallback(() => {
-    setOptions((prev) => [
-      ...prev,
-      { id: generateId(), content: { blocks: [] }, isCorrect: false },
-    ]);
+    setOptions((prev) => [...prev, { content: { blocks: [] } }]);
   }, []);
 
-  const handleDeleteOption = useCallback((optId: string) => {
-    setOptions((prev) => prev.filter((o) => o.id !== optId));
+  const handleDeleteOption = useCallback((index: number) => {
+    setOptions((prev) => prev.filter((_, i) => i !== index));
+    setCorrectOptionIndex((prev) => {
+      if (index < prev) return prev - 1;
+      if (index === prev) return 0;
+      return prev;
+    });
   }, []);
 
   const handleSave = useCallback(
@@ -435,6 +456,9 @@ export function usePaperBuilder(
       setIsSaving(true);
       try {
         const allQs = localSections.flatMap((s) => s.questions || []);
+
+        // Separate existing vs new questions (temp IDs = new, real UUIDs = existing)
+        const tempQuestions = allQs.filter((q) => q.id.startsWith('temp-'));
 
         const questionUpdates = allQs
           .filter((q) => !q.id.startsWith('temp-'))
@@ -445,24 +469,24 @@ export function usePaperBuilder(
             explanation: q.explanation,
             positiveMarks: q.positiveMarks,
             negativeMarks: q.negativeMarks,
-            correctOptionIndex: Math.max(0, q.options?.findIndex((o: any) => o.isCorrect) ?? 0),
+            correctOptionIndex: q.correctOptionIndex ?? 0,
             sectionId: q.sectionId,
             order: idx,
           }));
 
-        const newQuestions = allQs
-          .filter((q) => q.id.startsWith('temp-'))
-          .map((q, idx) => ({
-            question: q.question,
-            options: q.options,
-            explanation: q.explanation,
-            positiveMarks: q.positiveMarks,
-            negativeMarks: q.negativeMarks,
-            correctOptionIndex: Math.max(0, q.options?.findIndex((o: any) => o.isCorrect) ?? 0),
-            sectionId: q.sectionId,
-            paperId,
-            order: idx,
-          }));
+        const newQuestions = tempQuestions.map((q, idx) => ({
+          question: q.question,
+          options: q.options,
+          explanation: q.explanation,
+          positiveMarks: q.positiveMarks,
+          negativeMarks: q.negativeMarks,
+          correctOptionIndex: q.correctOptionIndex ?? 0,
+          sectionId: q.sectionId,
+          paperId,
+          order: idx,
+        }));
+
+        const tempSections = localSections.filter((s) => s.id.startsWith('temp-'));
 
         const sectionUpdates = localSections
           .filter((s) => !s.id.startsWith('temp-'))
@@ -474,15 +498,13 @@ export function usePaperBuilder(
             negativeMarks: s.negativeMarks,
           }));
 
-        const newSections = localSections
-          .filter((s) => s.id.startsWith('temp-'))
-          .map((s, idx) => ({
-            title: s.title,
-            paperId,
-            order: idx,
-            positiveMarks: s.positiveMarks,
-            negativeMarks: s.negativeMarks,
-          }));
+        const newSections = tempSections.map((s, idx) => ({
+          title: s.title,
+          paperId,
+          order: idx,
+          positiveMarks: s.positiveMarks,
+          negativeMarks: s.negativeMarks,
+        }));
 
         const paperUpdate = {
           description: paperDescription,
@@ -506,21 +528,17 @@ export function usePaperBuilder(
             : null,
         ]);
 
-        // Build tempId → realId map from newly created sections
-        const tempSectionIds = localSections
-          .filter((s) => s.id.startsWith('temp-'))
-          .map((s) => s.id);
-
+        // Build temp section ID → real ID map
         const sectionIdMap = new Map<string, string>();
         if (newSections.length > 0) {
           const result = await sectionService.createSections(newSections);
-          const created: Array<{ id: string }> = result.data ?? [];
-          tempSectionIds.forEach((tempId, idx) => {
-            if (created[idx]) sectionIdMap.set(tempId, created[idx].id);
+          const createdSections: Array<{ id: string }> = result.data ?? [];
+          tempSections.forEach((s, idx) => {
+            if (createdSections[idx]) sectionIdMap.set(s.id, createdSections[idx].id);
           });
         }
 
-        // 3. Questions — resolve any temp sectionIds to real ones, then save in parallel
+        // 3. Questions — resolve temp sectionIds, then save
         const resolvedNewQuestions = newQuestions.map((q) => ({
           ...q,
           sectionId: sectionIdMap.get(q.sectionId) ?? q.sectionId,
@@ -531,7 +549,7 @@ export function usePaperBuilder(
           sectionId: sectionIdMap.get(q.sectionId!) ?? q.sectionId,
         }));
 
-        await Promise.all([
+        const [, createdQuestionsResult] = await Promise.all([
           resolvedQuestionUpdates.length > 0
             ? questionService.updateQuestions(resolvedQuestionUpdates)
             : null,
@@ -542,6 +560,31 @@ export function usePaperBuilder(
             ? questionService.deleteQuestions(Array.from(deletedQuestionIds))
             : null,
         ]);
+
+        // Build temp question ID → real ID map from create response
+        const questionIdMap = new Map<string, string>();
+        const createdQs: Array<{ id: string }> = (createdQuestionsResult as any)?.data ?? [];
+        tempQuestions.forEach((q, idx) => {
+          if (createdQs[idx]) questionIdMap.set(q.id, createdQs[idx].id);
+        });
+
+        // Replace all temp IDs with real IDs so the next save doesn't duplicate
+        setLocalSections((prev) =>
+          prev.map((section) => ({
+            ...section,
+            id: sectionIdMap.get(section.id) ?? section.id,
+            questions:
+              section.questions?.map((q) => ({
+                ...q,
+                id: questionIdMap.get(q.id) ?? q.id,
+                sectionId: sectionIdMap.get(q.sectionId) ?? q.sectionId,
+              })) ?? [],
+          }))
+        );
+
+        // Keep the active question in sync if its ID changed
+        setActiveQuestionId((prev) => (prev ? (questionIdMap.get(prev) ?? prev) : prev));
+
         toast.success(isPublishing ? 'Paper published successfully' : 'Paper saved successfully');
         setIsDirty(false);
         setDeletedQuestionIds(new Set());
@@ -601,6 +644,7 @@ export function usePaperBuilder(
     questionContent,
     setQuestionContent,
     options,
+    correctOptionIndex,
     allQuestions,
     activeQuestionIndex,
     activeQuestion,
@@ -636,7 +680,7 @@ export function usePaperBuilder(
     handleDragStartSection,
     handleDropSection,
     handleDragOver,
-    handleToggleCorrect,
+    handleSetCorrectOption,
     handleOptionContentChange,
     handleAddSection,
     handleDeleteSection,

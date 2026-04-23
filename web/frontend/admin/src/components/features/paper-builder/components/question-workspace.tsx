@@ -16,13 +16,14 @@ interface QuestionWorkspaceProps {
   activeItemId: string | null;
   questionContent: OutputData;
   options: Option[];
+  correctOptionIndex: number;
   onActiveItemIdChange: (id: string) => void;
   onQuestionContentChange: (data: OutputData) => void;
-  onOptionContentChange: (optId: string, data: any) => void;
-  onToggleCorrect: (id: string) => void;
+  onOptionContentChange: (index: number, data: any) => void;
+  onSetCorrectOption: (index: number) => void;
   onDeleteQuestion: (id: string) => void;
   onAddOption: () => void;
-  onDeleteOption: (id: string) => void;
+  onDeleteOption: (index: number) => void;
 }
 
 export default function QuestionWorkspace({
@@ -31,10 +32,11 @@ export default function QuestionWorkspace({
   activeItemId,
   questionContent,
   options,
+  correctOptionIndex,
   onActiveItemIdChange,
   onQuestionContentChange,
   onOptionContentChange,
-  onToggleCorrect,
+  onSetCorrectOption,
   onDeleteQuestion,
   onAddOption,
   onDeleteOption,
@@ -85,57 +87,61 @@ export default function QuestionWorkspace({
           </div>
 
           <div className="space-y-4">
-            {options.map((option, index) => (
-              <div
-                key={option.id}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onActiveItemIdChange(option.id);
-                }}
-                className={`group/option flex items-start gap-4 p-5 rounded-[1.5rem] transition-all duration-300 border border-transparent relative ${
-                  activeItemId === option.id
-                    ? 'bg-surface-container-low z-30 ring-1 ring-primary/5 shadow-sm'
-                    : 'bg-surface-container-low/50 hover:bg-surface-container-low z-0 hover:z-10'
-                }`}
-              >
-                <div className="mt-2.5 p-1 cursor-grab active:cursor-grabbing text-on-surface-variant/20 group-hover/option:text-on-surface-variant/40 transition-colors">
-                  <GripVertical size={16} />
-                </div>
-
-                <button
-                  onClick={() => onToggleCorrect(option.id)}
-                  className={`mt-2 flex-shrink-0 transition-all duration-500 ${
-                    option.isCorrect
-                      ? 'text-primary scale-110'
-                      : 'text-on-surface-variant/20 hover:text-on-surface-variant/40'
+            {options.map((option, index) => {
+              const itemKey = `option-${index}`;
+              const isCorrect = index === correctOptionIndex;
+              return (
+                <div
+                  key={`${activeQuestionId}-opt-${index}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onActiveItemIdChange(itemKey);
+                  }}
+                  className={`group/option flex items-start gap-4 p-5 rounded-[1.5rem] transition-all duration-300 border border-transparent relative ${
+                    activeItemId === itemKey
+                      ? 'bg-surface-container-low z-30 ring-1 ring-primary/5 shadow-sm'
+                      : 'bg-surface-container-low/50 hover:bg-surface-container-low z-0 hover:z-10'
                   }`}
                 >
-                  {option.isCorrect ? (
-                    <CircleDot size={24} strokeWidth={2.5} />
-                  ) : (
-                    <Circle size={24} strokeWidth={2} />
-                  )}
-                </button>
+                  <div className="mt-2.5 p-1 cursor-grab active:cursor-grabbing text-on-surface-variant/20 group-hover/option:text-on-surface-variant/40 transition-colors">
+                    <GripVertical size={16} />
+                  </div>
 
-                <div className="flex-1 min-h-[40px]">
-                  <Editor
-                    key={option.id}
-                    data={option.content as OutputData}
-                    onChange={(data) => onOptionContentChange(option.id, data)}
-                    placeholder={`Option ${index + 1}`}
-                  />
-                </div>
-
-                <div className="mt-2 flex items-center gap-1 opacity-0 group-hover/option:opacity-100 transition-all duration-300">
                   <button
-                    onClick={() => onDeleteOption(option.id)}
-                    className="p-2 text-on-surface-variant/40 hover:text-error transition-colors"
+                    onClick={() => onSetCorrectOption(index)}
+                    className={`mt-2 flex-shrink-0 transition-all duration-500 ${
+                      isCorrect
+                        ? 'text-primary scale-110'
+                        : 'text-on-surface-variant/20 hover:text-on-surface-variant/40'
+                    }`}
                   >
-                    <X size={16} />
+                    {isCorrect ? (
+                      <CircleDot size={24} strokeWidth={2.5} />
+                    ) : (
+                      <Circle size={24} strokeWidth={2} />
+                    )}
                   </button>
+
+                  <div className="flex-1 min-h-[40px]">
+                    <Editor
+                      key={`${activeQuestionId}-opt-${index}`}
+                      data={option.content as OutputData}
+                      onChange={(data) => onOptionContentChange(index, data)}
+                      placeholder={`Option ${index + 1}`}
+                    />
+                  </div>
+
+                  <div className="mt-2 flex items-center gap-1 opacity-0 group-hover/option:opacity-100 transition-all duration-300">
+                    <button
+                      onClick={() => onDeleteOption(index)}
+                      className="p-2 text-on-surface-variant/40 hover:text-error transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             <button
               onClick={onAddOption}

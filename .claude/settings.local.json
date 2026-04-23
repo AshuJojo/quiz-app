@@ -6,7 +6,7 @@
       "Bash(rm components/shared/data-table/data-table.tsx components/shared/data-table/data-table-item.tsx)",
       "Bash(rm components/shared/hierarchical-select/hierarchical-select.tsx components/shared/hierarchical-select/hierarchical-option.tsx)",
       "Bash(rm components/shared/editor.tsx)",
-      "Bash(npx prisma *)"
+      "Bash(pnpm dlx prisma *)"
     ]
   }
 }
