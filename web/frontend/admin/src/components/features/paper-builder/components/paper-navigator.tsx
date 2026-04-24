@@ -1,12 +1,13 @@
 'use client';
 
 import { Question, Section } from '@/components/features/papers/types';
-import { ChevronDown, ChevronRight, GripVertical, LayoutGrid, Plus, Trash2, X } from 'lucide-react';
-import { useState } from 'react';
+import { ChevronDown, ChevronRight, GripVertical, LayoutGrid, Plus, X } from 'lucide-react';
+import { useRef, useState } from 'react';
 
 interface PaperNavigatorProps {
   isLoading: boolean;
-  localSections: Section[];
+  visibleSections: Section[]; // non-default sections for rendering
+  defaultSectionId: string | null; // hidden default section for hasSections=false
   hasSections: boolean;
   allQuestions: Question[];
   activeQuestionId: string | null;
@@ -29,13 +30,15 @@ interface PaperNavigatorProps {
   onDropSection: (e: React.DragEvent, tId: string) => void;
   onDragOver: (e: React.DragEvent) => void;
   onAddSection: (sectionId: string) => void;
+  onCreateSection: (title: string) => Promise<void>;
   onDeleteSection: (id: string) => void;
   onAddQuestion: (sId: string) => void;
 }
 
 export default function PaperNavigator({
   isLoading,
-  localSections,
+  visibleSections,
+  defaultSectionId,
   hasSections,
   allQuestions,
   activeQuestionId,
@@ -58,10 +61,27 @@ export default function PaperNavigator({
   onDropSection,
   onDragOver,
   onAddSection,
+  onCreateSection,
   onDeleteSection,
   onAddQuestion,
 }: PaperNavigatorProps) {
   const [showSectionPicker, setShowSectionPicker] = useState(false);
+  const [newSectionTitle, setNewSectionTitle] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+  const createInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCreate = async () => {
+    const title = newSectionTitle.trim();
+    if (!title) return;
+    setIsCreating(true);
+    try {
+      await onCreateSection(title);
+      setNewSectionTitle('');
+      setShowSectionPicker(false);
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
   return (
     <aside className="w-80 flex flex-col bg-surface-container-low border-r border-outline-variant/10 overflow-hidden shadow-[inset_-10px_0_30px_-15px_rgba(0,0,0,0.03)]">
@@ -82,7 +102,7 @@ export default function PaperNavigator({
               </div>
             ))}
           </div>
-        ) : localSections.length === 0 ? (
+        ) : visibleSections.length === 0 && hasSections ? (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4 opacity-50">
             <div className="w-12 h-12 rounded-2xl bg-surface-container-high flex items-center justify-center text-on-surface-variant/30">
               <LayoutGrid size={24} />
@@ -92,12 +112,12 @@ export default function PaperNavigator({
                 No Sections Added
               </p>
               <p className="text-[10px] text-on-surface-variant/60 mt-1">
-                Add sections from the exam to start building.
+                Add or create sections to start building.
               </p>
             </div>
           </div>
         ) : hasSections ? (
-          localSections.map((section: Section) => (
+          visibleSections.map((section: Section) => (
             <div key={section.id} className="space-y-1">
               <div
                 draggable
@@ -203,6 +223,7 @@ export default function PaperNavigator({
             </div>
           ))
         ) : (
+          // hasSections = false: flat question list, routed to default section
           <div className="space-y-4 animate-in fade-in duration-500">
             <div className="flex items-center gap-2 p-2 px-4 group">
               <span className="text-[11px] font-black uppercase tracking-widest text-on-surface-variant/70 group-hover:text-on-background transition-colors">
@@ -233,7 +254,7 @@ export default function PaperNavigator({
                 </div>
               ))}
               <button
-                onClick={() => onAddQuestion(localSections[0]?.id)}
+                onClick={() => onAddQuestion(defaultSectionId || visibleSections[0]?.id || '')}
                 className="w-9 h-9 rounded-full flex items-center justify-center border-2 border-dashed border-outline-variant/40 text-on-surface-variant/30 hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all"
               >
                 <Plus size={14} strokeWidth={3} />
@@ -242,48 +263,80 @@ export default function PaperNavigator({
           </div>
         )}
 
-        {/* Section picker */}
+        {/* Section picker — only visible when hasSections is on */}
         {!isLoading && hasSections && (
           <div className="mt-4 mb-2 relative">
             <button
-              onClick={() => setShowSectionPicker((v) => !v)}
-              disabled={availableExamSections.length === 0}
-              className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed border-outline-variant/20 text-on-surface-variant/40 hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all text-[11px] font-black uppercase tracking-widest group disabled:opacity-30 disabled:cursor-not-allowed"
+              onClick={() => {
+                setShowSectionPicker((v) => !v);
+                if (!showSectionPicker) setTimeout(() => createInputRef.current?.focus(), 50);
+              }}
+              className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed border-outline-variant/20 text-on-surface-variant/40 hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all text-[11px] font-black uppercase tracking-widest group"
             >
               <Plus
                 size={18}
                 strokeWidth={3}
                 className="group-hover:scale-110 transition-transform"
               />
-              {availableExamSections.length === 0 ? 'All Sections Added' : 'Add Section'}
+              Add / Create Section
             </button>
 
-            {showSectionPicker && availableExamSections.length > 0 && (
+            {showSectionPicker && (
               <div className="absolute bottom-full left-0 right-0 mb-2 bg-surface-container-lowest border border-outline-variant/10 rounded-2xl shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                <div className="p-2 border-b border-outline-variant/5">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant/40 px-2">
-                    Exam Sections
+                {/* Create new section */}
+                <div className="p-3 border-b border-outline-variant/5">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant/40 mb-2 px-1">
+                    Create New
                   </p>
-                </div>
-                <div className="max-h-48 overflow-y-auto p-2 space-y-1">
-                  {availableExamSections.map((section) => (
-                    <button
-                      key={section.id}
-                      onClick={() => {
-                        onAddSection(section.id);
-                        setShowSectionPicker(false);
+                  <div className="flex gap-2">
+                    <input
+                      ref={createInputRef}
+                      value={newSectionTitle}
+                      onChange={(e) => setNewSectionTitle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleCreate();
+                        if (e.key === 'Escape') setShowSectionPicker(false);
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-container-low transition-all text-left group/item"
+                      placeholder="Section name..."
+                      className="flex-1 bg-surface-container-low border border-outline-variant/10 rounded-xl px-3 py-2 text-[11px] font-black uppercase tracking-widest text-on-background placeholder:text-on-surface-variant/30 focus:outline-none focus:ring-1 focus:ring-primary/30"
+                    />
+                    <button
+                      onClick={handleCreate}
+                      disabled={!newSectionTitle.trim() || isCreating}
+                      className="px-3 py-2 rounded-xl bg-primary text-white text-[10px] font-black uppercase tracking-widest disabled:opacity-40 hover:bg-primary/90 transition-colors"
                     >
-                      <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover/item:bg-primary/20 transition-colors">
-                        <Plus size={12} strokeWidth={3} className="text-primary" />
-                      </div>
-                      <span className="text-[11px] font-black uppercase tracking-widest text-on-surface-variant/70 group-hover/item:text-on-background transition-colors truncate">
-                        {section.title}
-                      </span>
+                      {isCreating ? '...' : 'Create'}
                     </button>
-                  ))}
+                  </div>
                 </div>
+
+                {/* Existing exam sections to add */}
+                {availableExamSections.length > 0 && (
+                  <div className="p-2">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant/40 px-2 mb-1">
+                      Add from Exam
+                    </p>
+                    <div className="max-h-40 overflow-y-auto space-y-1">
+                      {availableExamSections.map((section) => (
+                        <button
+                          key={section.id}
+                          onClick={() => {
+                            onAddSection(section.id);
+                            setShowSectionPicker(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-container-low transition-all text-left group/item"
+                        >
+                          <div className="w-5 h-5 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover/item:bg-primary/20 transition-colors">
+                            <Plus size={10} strokeWidth={3} className="text-primary" />
+                          </div>
+                          <span className="text-[11px] font-black uppercase tracking-widest text-on-surface-variant/70 group-hover/item:text-on-background transition-colors truncate">
+                            {section.title}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

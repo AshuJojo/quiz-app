@@ -26,9 +26,9 @@ const EMPTY_OPTIONS: Option[] = [
 export function usePaperBuilder(
   paperId: string,
   paper: Paper | undefined,
-  sections: Section[] | undefined, // sections already in the paper (ordered)
+  sections: Section[] | undefined, // sections in paper (ordered), includes default
   questions: Question[] | undefined,
-  examSections: Section[] | undefined, // all sections for the exam
+  examSections: Section[] | undefined, // all exam sections (excludes default sections)
   isSuccess: boolean
 ) {
   const queryClient = useQueryClient();
@@ -45,14 +45,11 @@ export function usePaperBuilder(
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Sections added to this paper since last save (real exam section UUIDs)
   const [addedSectionIds, setAddedSectionIds] = useState<Set<string>>(new Set());
-  // Sections removed from this paper since last save
   const [removedSectionIds, setRemovedSectionIds] = useState<Set<string>>(new Set());
-  // Section titles renamed since last save: sectionId → new title
   const [renamedSections, setRenamedSections] = useState<Map<string, string>>(new Map());
-
   const [deletedQuestionIds, setDeletedQuestionIds] = useState<Set<string>>(new Set());
+
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [draggedQuestionId, setDraggedQuestionId] = useState<string | null>(null);
   const [draggedSectionId, setDraggedSectionId] = useState<string | null>(null);
@@ -91,7 +88,6 @@ export function usePaperBuilder(
     }
   }, [paper]);
 
-  // Init: populate localSections once on first successful load
   useEffect(() => {
     if (isSuccess && initialSections && localSections.length === 0) {
       setLocalSections(initialSections);
@@ -137,10 +133,26 @@ export function usePaperBuilder(
     [localSections]
   );
 
+  // Visible sections — excludes the hidden default/uncategorized section
+  const visibleSections = useMemo(() => localSections.filter((s) => !s.isDefault), [localSections]);
+
+  // ID of the hidden default section (used for questions when hasSections=false)
+  const defaultSectionId = useMemo(
+    () => localSections.find((s) => s.isDefault)?.id ?? null,
+    [localSections]
+  );
+
+  // Exam sections that haven't been added to this paper yet
+  const availableExamSections = useMemo(() => {
+    if (!examSections) return [];
+    const inPaper = new Set(localSections.map((s) => s.id));
+    return examSections.filter((s) => !inPaper.has(s.id));
+  }, [examSections, localSections]);
+
   // Auto-select the first question when none is active
   useEffect(() => {
     if (localSections.length > 0 && !activeQuestionId) {
-      const firstQ = localSections[0]?.questions?.[0];
+      const firstQ = allQuestions[0];
       if (firstQ) {
         setActiveQuestionId(firstQ.id);
         setQuestionContent(firstQ.question);
@@ -152,7 +164,7 @@ export function usePaperBuilder(
         setIsDirty(false);
       }
     }
-  }, [localSections, activeQuestionId]);
+  }, [localSections, activeQuestionId, allQuestions]);
 
   // Dirty state for global paper fields
   useEffect(() => {
@@ -191,13 +203,6 @@ export function usePaperBuilder(
     () => allQuestions[activeQuestionIndex],
     [allQuestions, activeQuestionIndex]
   );
-
-  // Sections available to add (exam sections not already in paper)
-  const availableExamSections = useMemo(() => {
-    if (!examSections) return [];
-    const inPaper = new Set(localSections.map((s) => s.id));
-    return examSections.filter((s) => !inPaper.has(s.id));
-  }, [examSections, localSections]);
 
   const handleSelectQuestion = useCallback((q: Question) => {
     setActiveQuestionId(q.id);
@@ -321,16 +326,15 @@ export function usePaperBuilder(
     setOptions((prev) => prev.map((opt, i) => (i === index ? { ...opt, content: data } : opt)));
   }, []);
 
-  // Add an existing exam section to this paper
+  // Add an existing exam section to this paper (buffered until save)
   const handleAddSection = useCallback(
     (sectionId: string) => {
       const section = examSections?.find((s) => s.id === sectionId);
       if (!section) return;
-      setLocalSections((prev) => [...prev, { ...section, questions: [] }]);
+      setLocalSections((prev) => [...prev, { ...section, questions: [], isDefault: false }]);
       setAddedSectionIds((prev) => {
         const next = new Set(prev);
         next.add(sectionId);
-        // If it was previously removed, cancel the remove
         return next;
       });
       setRemovedSectionIds((prev) => {
@@ -343,18 +347,43 @@ export function usePaperBuilder(
     [examSections]
   );
 
+  // Create a new section in the exam immediately, then buffer the add-to-paper
+  const handleCreateSection = useCallback(
+    async (title: string) => {
+      if (!selectedExamId) {
+        toast.error('Paper must be linked to an exam to create sections');
+        return;
+      }
+      try {
+        const result = await sectionService.createSections([{ examId: selectedExamId, title }]);
+        const newSection: Section = result.data?.[0];
+        if (!newSection) throw new Error('No section returned');
+        setLocalSections((prev) => [...prev, { ...newSection, questions: [], isDefault: false }]);
+        setAddedSectionIds((prev) => new Set(prev).add(newSection.id));
+        setIsDirty(true);
+        // Invalidate exam sections so the picker reflects the new section
+        queryClient.invalidateQueries({ queryKey: ['exam-sections', selectedExamId] });
+      } catch {
+        toast.error('Failed to create section');
+      }
+    },
+    [selectedExamId, queryClient]
+  );
+
   const handleDeleteSection = useCallback(
     (sectionId: string) => {
-      if (localSections.length <= 1) {
+      const section = localSections.find((s) => s.id === sectionId);
+
+      if (section?.isDefault) {
+        toast.error('The default section cannot be removed.');
+        return;
+      }
+      if (hasSections && visibleSections.length <= 1) {
         toast.error(
-          hasSections
-            ? 'Cannot remove the only section. Disable "Have Sections" or keep at least one section.'
-            : 'Cannot remove the last section.'
+          'Cannot remove the only section. Disable "Have Sections" or add another section first.'
         );
         return;
       }
-
-      const section = localSections.find((s) => s.id === sectionId);
       if (
         !window.confirm(
           `Remove "${section?.title || 'this section'}" from this paper? All its questions in this paper will be deleted.`
@@ -362,7 +391,6 @@ export function usePaperBuilder(
       )
         return;
 
-      // If it was just added (not yet saved), just undo the add
       if (addedSectionIds.has(sectionId)) {
         setAddedSectionIds((prev) => {
           const next = new Set(prev);
@@ -370,11 +398,9 @@ export function usePaperBuilder(
           return next;
         });
       } else {
-        // Mark for removal from paper on save
         setRemovedSectionIds((prev) => new Set(prev).add(sectionId));
       }
 
-      // Remove its questions from deletedQuestionIds (server cascade handles them)
       const sectionQIds = new Set(
         (section?.questions ?? []).filter((q) => !q.id.startsWith('temp-')).map((q) => q.id)
       );
@@ -392,15 +418,17 @@ export function usePaperBuilder(
       setIsDirty(true);
       setLocalSections((prev) => prev.filter((s) => s.id !== sectionId));
     },
-    [localSections, activeQuestionId, hasSections, addedSectionIds]
+    [localSections, activeQuestionId, hasSections, visibleSections.length, addedSectionIds]
   );
 
   const handleAddQuestion = useCallback(
     (sectionId: string) => {
+      // When hasSections is off, route new questions to the hidden default section
+      const targetSectionId = !hasSections && defaultSectionId ? defaultSectionId : sectionId;
       const emptyContent = { blocks: [{ type: 'paragraph', data: { text: '' } }] };
       const newQuestion: Question = {
         id: `temp-${generateId()}`,
-        sectionId,
+        sectionId: targetSectionId,
         paperId,
         question: emptyContent,
         options: [...EMPTY_OPTIONS],
@@ -410,7 +438,7 @@ export function usePaperBuilder(
       };
       setLocalSections((prev) =>
         prev.map((s) =>
-          s.id === sectionId ? { ...s, questions: [...(s.questions || []), newQuestion] } : s
+          s.id === targetSectionId ? { ...s, questions: [...(s.questions || []), newQuestion] } : s
         )
       );
       setActiveQuestionId(newQuestion.id);
@@ -421,7 +449,7 @@ export function usePaperBuilder(
       setQuestionPositiveMarks(null);
       setQuestionNegativeMarks(null);
     },
-    [paperId]
+    [paperId, hasSections, defaultSectionId]
   );
 
   const handleDeleteQuestion = useCallback(
@@ -498,7 +526,7 @@ export function usePaperBuilder(
         // 1. Paper
         await paperService.updatePaper(paperId, paperUpdate);
 
-        // 2a. Remove sections from paper (cascade deletes their questions)
+        // 2a. Remove sections from paper
         if (removedSectionIds.size > 0) {
           await Promise.all(
             Array.from(removedSectionIds).map((sId) =>
@@ -512,10 +540,10 @@ export function usePaperBuilder(
           await paperSectionService.addSectionsToPaper(paperId, Array.from(addedSectionIds));
         }
 
-        // 2c. Reorder all current sections
-        const sectionOrderUpdates = localSections.map((s, idx) => ({
+        // 2c. Reorder non-default sections
+        const sectionOrderUpdates = visibleSections.map((s, idx) => ({
           sectionId: s.id,
-          order: idx,
+          order: idx + 1, // default section keeps order 0
         }));
         if (sectionOrderUpdates.length > 0) {
           await paperSectionService.reorderPaperSections(paperId, sectionOrderUpdates);
@@ -530,7 +558,7 @@ export function usePaperBuilder(
           await sectionService.updateSections(titleUpdates);
         }
 
-        // 3. Questions — sections are all real IDs now, no sectionIdMap needed
+        // 3. Questions — all section IDs are real UUIDs
         const [, createdQuestionsResult] = await Promise.all([
           questionUpdates.length > 0 ? questionService.updateQuestions(questionUpdates) : null,
           newQuestions.length > 0 ? questionService.createQuestions(newQuestions) : null,
@@ -539,14 +567,13 @@ export function usePaperBuilder(
             : null,
         ]);
 
-        // Map temp question IDs → real IDs from create response
+        // Replace temp question IDs with real IDs
         const questionIdMap = new Map<string, string>();
         const createdQs: Array<{ id: string }> = (createdQuestionsResult as any)?.data ?? [];
         tempQuestions.forEach((q, idx) => {
           if (createdQs[idx]) questionIdMap.set(q.id, createdQs[idx].id);
         });
 
-        // Replace temp question IDs with real IDs
         setLocalSections((prev) =>
           prev.map((section) => ({
             ...section,
@@ -579,6 +606,7 @@ export function usePaperBuilder(
       isDirty,
       isSaving,
       localSections,
+      visibleSections,
       addedSectionIds,
       removedSectionIds,
       renamedSections,
@@ -608,6 +636,8 @@ export function usePaperBuilder(
 
   return {
     localSections,
+    visibleSections,
+    defaultSectionId,
     isDirty,
     isSaving,
     collapsedSections,
@@ -662,6 +692,7 @@ export function usePaperBuilder(
     handleSetCorrectOption,
     handleOptionContentChange,
     handleAddSection,
+    handleCreateSection,
     handleDeleteSection,
     handleAddQuestion,
     handleDeleteQuestion,

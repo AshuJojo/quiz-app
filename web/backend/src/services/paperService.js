@@ -53,7 +53,19 @@ exports.createPaper = async (data) => {
     }
   }
 
-  return prisma.paper.create({ data });
+  const paper = await prisma.paper.create({ data });
+
+  // Auto-create a hidden default "Uncategorized" section for this paper.
+  // This section has no examId (paper-specific), is never shown in the builder,
+  // and serves as the question target when hasSections is off.
+  const defaultSection = await prisma.section.create({
+    data: { title: 'Uncategorized', examId: null },
+  });
+  await prisma.paperSection.create({
+    data: { paperId: paper.id, sectionId: defaultSection.id, order: 0, isDefault: true },
+  });
+
+  return paper;
 };
 
 exports.updatePaper = async (id, data) => {

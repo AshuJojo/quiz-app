@@ -84,7 +84,8 @@ export default function PaperBuilder({ id }: PaperBuilderProps) {
       <div className="flex-1 flex overflow-hidden">
         <PaperNavigator
           isLoading={isLoading}
-          localSections={b.localSections}
+          visibleSections={b.visibleSections}
+          defaultSectionId={b.defaultSectionId}
           hasSections={b.hasSections}
           allQuestions={b.allQuestions}
           activeQuestionId={b.activeQuestionId}
@@ -107,6 +108,7 @@ export default function PaperBuilder({ id }: PaperBuilderProps) {
           onDropSection={b.handleDropSection}
           onDragOver={b.handleDragOver}
           onAddSection={b.handleAddSection}
+          onCreateSection={b.handleCreateSection}
           onDeleteSection={b.handleDeleteSection}
           onAddQuestion={b.handleAddQuestion}
         />

@@ -18,11 +18,12 @@ exports.getPaperSections = async (paperId) => {
   return paperSections.map((ps) => ({
     ...ps.section,
     order: ps.order,
+    isDefault: ps.isDefault,
     paperSectionId: ps.id,
   }));
 };
 
-// Add sections to a paper
+// Add sections to a paper (exam-owned sections only — never the default section)
 exports.addSectionsToPaper = async (paperId, sectionIds) => {
   const paper = await prisma.paper.findUnique({ where: { id: paperId } });
   if (!paper) {
@@ -31,7 +32,6 @@ exports.addSectionsToPaper = async (paperId, sectionIds) => {
     throw error;
   }
 
-  // Validate sections exist and belong to the paper's exam
   const sections = await prisma.section.findMany({
     where: { id: { in: sectionIds } },
     select: { id: true, examId: true },
@@ -46,6 +46,8 @@ exports.addSectionsToPaper = async (paperId, sectionIds) => {
   }
 
   if (paper.examId) {
+    // Reject any section whose examId doesn't match the paper's exam.
+    // Sections with null examId (default/uncategorized) are never user-added.
     const invalid = sections.filter((s) => s.examId !== paper.examId);
     if (invalid.length > 0) {
       const error = new Error(
@@ -65,17 +67,18 @@ exports.addSectionsToPaper = async (paperId, sectionIds) => {
   const toAdd = sectionIds.filter((id) => !existingIds.has(id));
   if (toAdd.length === 0) return [];
 
+  // Place new sections after the current last non-default section
   const maxOrder = await prisma.paperSection.findFirst({
-    where: { paperId },
+    where: { paperId, isDefault: false },
     orderBy: { order: 'desc' },
     select: { order: true },
   });
-  let nextOrder = (maxOrder?.order ?? -1) + 1;
+  let nextOrder = (maxOrder?.order ?? 0) + 1;
 
   return prisma.$transaction(
     toAdd.map((sectionId) =>
       prisma.paperSection.create({
-        data: { paperId, sectionId, order: nextOrder++ },
+        data: { paperId, sectionId, order: nextOrder++, isDefault: false },
         include: { section: true },
       })
     )
@@ -92,6 +95,11 @@ exports.removeSectionFromPaper = async (paperId, sectionId) => {
     error.statusCode = 404;
     throw error;
   }
+  if (ps.isDefault) {
+    const error = new Error('Cannot remove the default section from a paper');
+    error.statusCode = 400;
+    throw error;
+  }
 
   await prisma.$transaction([
     prisma.question.deleteMany({ where: { paperId, sectionId } }),
@@ -99,7 +107,7 @@ exports.removeSectionFromPaper = async (paperId, sectionId) => {
   ]);
 };
 
-// Reorder sections within a paper
+// Reorder non-default sections within a paper
 exports.reorderPaperSections = async (paperId, updates) => {
   const paper = await prisma.paper.findUnique({ where: { id: paperId } });
   if (!paper) {

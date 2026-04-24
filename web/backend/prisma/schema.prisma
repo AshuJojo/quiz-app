@@ -51,8 +51,8 @@ model Paper {
 model Section {
   id            String         @id @default(uuid())
   title         String
-  examId        String
-  exam          Exam           @relation(fields: [examId], references: [id], onDelete: Cascade)
+  examId        String?
+  exam          Exam?          @relation(fields: [examId], references: [id], onDelete: Cascade)
   questions     Question[]
   paperSections PaperSection[]
   createdAt     DateTime       @default(now())
@@ -68,6 +68,7 @@ model PaperSection {
   sectionId String
   section   Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   order     Int      @default(0)
+  isDefault Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

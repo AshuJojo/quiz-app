@@ -37,8 +37,9 @@ export interface Question {
 export interface Section {
   id: string;
   title: string;
-  examId: string;
+  examId?: string | null;
   order?: number;
+  isDefault?: boolean;
   paperSectionId?: string;
   questions?: Question[];
   _count?: { questions: number; paperSections: number };
