@@ -47,6 +47,19 @@ exports.update = async (req, res, next) => {
   }
 };
 
+exports.publish = async (req, res, next) => {
+  try {
+    const { isPublished } = req.body;
+    if (typeof isPublished !== 'boolean') {
+      return res.status(400).json({ success: false, message: '`isPublished` must be a boolean' });
+    }
+    const paper = await paperService.publishPaper(req.params.id, isPublished);
+    res.status(200).json({ success: true, data: paper });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.destroy = async (req, res, next) => {
   try {
     await paperService.deletePaper(req.params.id);

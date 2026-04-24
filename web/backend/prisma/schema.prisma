@@ -14,50 +14,67 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
 model Exam {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   name      String
-  slug      String   @unique
+  slug      String    @unique
   parentId  String?
-  parent    Exam?    @relation("ExamToExam", fields: [parentId], references: [id], onDelete: Cascade)
-  children  Exam[]   @relation("ExamToExam")
+  parent    Exam?     @relation("ExamToExam", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Exam[]    @relation("ExamToExam")
   papers    Paper[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  sections  Section[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model Paper {
-  id            String     @id @default(uuid())
+  id            String         @id @default(uuid())
   title         String
   description   String?
-  hasSections   Boolean    @default(true)
+  hasSections   Boolean        @default(true)
   examId        String?
-  exam          Exam?      @relation(fields: [examId], references: [id], onDelete: SetNull)
-  sections      Section[]
+  exam          Exam?          @relation(fields: [examId], references: [id], onDelete: SetNull)
+  paperSections PaperSection[]
   questions     Question[]
-  positiveMarks Float      @default(1)
-  negativeMarks Float      @default(0)
-  duration      Int        @default(0)
-  paperDate DateTime?
-  isPublished   Boolean    @default(false)
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  positiveMarks Float          @default(1)
+  negativeMarks Float          @default(0)
+  duration      Int            @default(0)
+  paperDate     DateTime?
+  isPublished   Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([examId])
 }
 
 model Section {
-  id            String     @id @default(uuid())
+  id            String         @id @default(uuid())
   title         String
-  order         Int        @default(0)
-  isDefault     Boolean    @default(false)
-  positiveMarks Float?
-  negativeMarks Float?
-  paperId       String
-  paper         Paper      @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  examId        String?
+  exam          Exam?          @relation(fields: [examId], references: [id], onDelete: Cascade)
   questions     Question[]
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  paperSections PaperSection[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
+  @@index([examId])
+}
+
+model PaperSection {
+  id        String   @id @default(uuid())
+  paperId   String
+  paper     Paper    @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  sectionId String
+  section   Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  order     Int      @default(0)
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([paperId, sectionId])
   @@index([paperId])
+  @@index([sectionId])
 }
 
 model Question {
@@ -73,6 +90,7 @@ model Question {
   explanation        String?
   positiveMarks      Float?
   negativeMarks      Float?
+  isPublished        Boolean  @default(false)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 

@@ -1,12 +1,10 @@
 const prisma = require('../config/db');
 
-// ─── MARKS INHERITANCE HELPER ─────────────────────────────────────────────────
-const resolveEffectiveMarks = (question, section, paper) => ({
-  effectivePositiveMarks: question.positiveMarks ?? section.positiveMarks ?? paper.positiveMarks,
-  effectiveNegativeMarks: question.negativeMarks ?? section.negativeMarks ?? paper.negativeMarks,
+const resolveEffectiveMarks = (question, paper) => ({
+  effectivePositiveMarks: question.positiveMarks ?? paper.positiveMarks,
+  effectiveNegativeMarks: question.negativeMarks ?? paper.negativeMarks,
 });
 
-// ─── GET ALL QUESTIONS FOR A PAPER ───────────────────────────────────────────
 exports.getQuestions = async (paperId) => {
   const paper = await prisma.paper.findUnique({ where: { id: paperId } });
   if (!paper) {
@@ -15,51 +13,46 @@ exports.getQuestions = async (paperId) => {
     throw error;
   }
 
+  // Get section ordering for this paper
+  const paperSections = await prisma.paperSection.findMany({
+    where: { paperId },
+    orderBy: { order: 'asc' },
+    select: { sectionId: true, order: true },
+  });
+  const sectionOrderMap = Object.fromEntries(paperSections.map((ps) => [ps.sectionId, ps.order]));
+
   const questions = await prisma.question.findMany({
     where: { paperId },
-    include: {
-      section: {
-        select: { id: true, title: true, order: true, positiveMarks: true, negativeMarks: true },
-      },
-    },
-    orderBy: [{ section: { order: 'asc' } }, { order: 'asc' }],
+    include: { section: { select: { id: true, title: true } } },
+    orderBy: { order: 'asc' },
   });
 
-  return questions.map((q) => ({
-    ...q,
-    ...resolveEffectiveMarks(q, q.section, paper),
-  }));
+  const sorted = [...questions].sort((a, b) => {
+    const aOrder = sectionOrderMap[a.sectionId] ?? 999;
+    const bOrder = sectionOrderMap[b.sectionId] ?? 999;
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    return a.order - b.order;
+  });
+
+  return sorted.map((q) => ({ ...q, ...resolveEffectiveMarks(q, paper) }));
 };
 
-// ─── GET QUESTION BY ID ───────────────────────────────────────────────────────
 exports.getQuestionById = async (id) => {
   const question = await prisma.question.findUnique({
     where: { id },
     include: {
-      section: {
-        select: { id: true, title: true, positiveMarks: true, negativeMarks: true },
-      },
-      paper: {
-        select: { id: true, title: true, positiveMarks: true, negativeMarks: true },
-      },
+      section: { select: { id: true, title: true } },
+      paper: { select: { id: true, title: true, positiveMarks: true, negativeMarks: true } },
     },
   });
-
   if (!question) return null;
-
-  return {
-    ...question,
-    ...resolveEffectiveMarks(question, question.section, question.paper),
-  };
+  return { ...question, ...resolveEffectiveMarks(question, question.paper) };
 };
 
-// ─── CREATE QUESTIONS (single or bulk, mixed sectionIds) ─────────────────────
 exports.createQuestions = async (questions) => {
-  // Collect unique paperIds and sectionIds
   const paperIds = [...new Set(questions.map((q) => q.paperId))];
   const sectionIds = [...new Set(questions.map((q) => q.sectionId))];
 
-  // Validate all papers exist
   const papers = await prisma.paper.findMany({
     where: { id: { in: paperIds } },
     select: { id: true },
@@ -72,29 +65,35 @@ exports.createQuestions = async (questions) => {
     throw error;
   }
 
-  // Validate all sections exist and belong to the correct paper
   const sections = await prisma.section.findMany({
     where: { id: { in: sectionIds } },
-    select: { id: true, paperId: true },
+    select: { id: true },
   });
-  const sectionMap = Object.fromEntries(sections.map((s) => [s.id, s.paperId]));
-  const missingSections = sectionIds.filter((id) => !sectionMap[id]);
+  const foundSectionIds = new Set(sections.map((s) => s.id));
+  const missingSections = sectionIds.filter((id) => !foundSectionIds.has(id));
   if (missingSections.length > 0) {
     const error = new Error(`Section not found: ${missingSections.join(', ')}`);
     error.statusCode = 400;
     throw error;
   }
 
-  // Validate paperId ↔ sectionId match
+  // Validate each (paperId, sectionId) pair exists in PaperSection
+  const pairs = questions.map((q) => ({ paperId: q.paperId, sectionId: q.sectionId }));
+  const uniquePairs = [...new Map(pairs.map((p) => [`${p.paperId}:${p.sectionId}`, p])).values()];
+  const paperSections = await prisma.paperSection.findMany({
+    where: { OR: uniquePairs.map(({ paperId, sectionId }) => ({ paperId, sectionId })) },
+    select: { paperId: true, sectionId: true },
+  });
+  const validPairs = new Set(paperSections.map((ps) => `${ps.paperId}:${ps.sectionId}`));
   for (const q of questions) {
-    if (sectionMap[q.sectionId] !== q.paperId) {
-      const error = new Error(`Section ${q.sectionId} does not belong to paper ${q.paperId}`);
+    if (!validPairs.has(`${q.paperId}:${q.sectionId}`)) {
+      const error = new Error(`Section ${q.sectionId} is not in paper ${q.paperId}`);
       error.statusCode = 400;
       throw error;
     }
   }
 
-  // Auto-assign order: append after last in each section
+  // Auto-assign order
   const orderOffsets = {};
   for (const sectionId of sectionIds) {
     const last = await prisma.question.findFirst({
@@ -113,7 +112,6 @@ exports.createQuestions = async (questions) => {
   return prisma.$transaction(toCreate.map((q) => prisma.question.create({ data: q })));
 };
 
-// ─── UPDATE QUESTION (single) ─────────────────────────────────────────────────
 exports.updateQuestion = async (id, data) => {
   const question = await prisma.question.findUnique({ where: { id } });
   if (!question) {
@@ -122,19 +120,12 @@ exports.updateQuestion = async (id, data) => {
     throw error;
   }
 
-  // If sectionId is being changed, validate it belongs to the same paper
-  if (data.sectionId) {
-    const section = await prisma.section.findUnique({
-      where: { id: data.sectionId },
-      select: { paperId: true },
+  if (data.sectionId && data.sectionId !== question.sectionId) {
+    const ps = await prisma.paperSection.findUnique({
+      where: { paperId_sectionId: { paperId: question.paperId, sectionId: data.sectionId } },
     });
-    if (!section) {
-      const error = new Error('Section not found');
-      error.statusCode = 400;
-      throw error;
-    }
-    if (section.paperId !== question.paperId) {
-      const error = new Error('Section does not belong to the same paper');
+    if (!ps) {
+      const error = new Error(`Section ${data.sectionId} is not in paper ${question.paperId}`);
       error.statusCode = 400;
       throw error;
     }
@@ -143,13 +134,12 @@ exports.updateQuestion = async (id, data) => {
   return prisma.question.update({ where: { id }, data });
 };
 
-// ─── BULK UPDATE QUESTIONS ────────────────────────────────────────────────────
 exports.updateQuestions = async (updates) => {
   const ids = updates.map((u) => u.id);
 
   const existing = await prisma.question.findMany({
     where: { id: { in: ids } },
-    select: { id: true, paperId: true },
+    select: { id: true, paperId: true, sectionId: true },
   });
   const foundIds = new Set(existing.map((q) => q.id));
   const missing = ids.filter((id) => !foundIds.has(id));
@@ -161,25 +151,18 @@ exports.updateQuestions = async (updates) => {
 
   const paperMap = Object.fromEntries(existing.map((q) => [q.id, q.paperId]));
 
-  // Validate any sectionId changes
   const sectionChanges = updates.filter((u) => u.sectionId);
   if (sectionChanges.length > 0) {
-    const sectionIds = [...new Set(sectionChanges.map((u) => u.sectionId))];
-    const sections = await prisma.section.findMany({
-      where: { id: { in: sectionIds } },
-      select: { id: true, paperId: true },
+    const pairs = sectionChanges.map((u) => ({ paperId: paperMap[u.id], sectionId: u.sectionId }));
+    const uniquePairs = [...new Map(pairs.map((p) => [`${p.paperId}:${p.sectionId}`, p])).values()];
+    const paperSections = await prisma.paperSection.findMany({
+      where: { OR: uniquePairs.map(({ paperId, sectionId }) => ({ paperId, sectionId })) },
+      select: { paperId: true, sectionId: true },
     });
-    const sectionMap = Object.fromEntries(sections.map((s) => [s.id, s.paperId]));
+    const validPairs = new Set(paperSections.map((ps) => `${ps.paperId}:${ps.sectionId}`));
     for (const u of sectionChanges) {
-      if (!sectionMap[u.sectionId]) {
-        const error = new Error(`Section not found: ${u.sectionId}`);
-        error.statusCode = 400;
-        throw error;
-      }
-      if (sectionMap[u.sectionId] !== paperMap[u.id]) {
-        const error = new Error(
-          `Section ${u.sectionId} does not belong to the same paper as question ${u.id}`
-        );
+      if (!validPairs.has(`${paperMap[u.id]}:${u.sectionId}`)) {
+        const error = new Error(`Section ${u.sectionId} is not in paper ${paperMap[u.id]}`);
         error.statusCode = 400;
         throw error;
       }
@@ -191,7 +174,6 @@ exports.updateQuestions = async (updates) => {
   );
 };
 
-// ─── DELETE QUESTION (single) ─────────────────────────────────────────────────
 exports.deleteQuestion = async (id) => {
   const question = await prisma.question.findUnique({ where: { id } });
   if (!question) {
@@ -202,15 +184,24 @@ exports.deleteQuestion = async (id) => {
   return prisma.question.delete({ where: { id } });
 };
 
-// ─── BULK DELETE QUESTIONS ────────────────────────────────────────────────────
 exports.deleteQuestions = async (ids) => {
-  const existing = await prisma.question.count({
-    where: { id: { in: ids } },
-  });
+  const existing = await prisma.question.count({ where: { id: { in: ids } } });
   if (existing !== ids.length) {
     const error = new Error('Invalid question ids');
     error.statusCode = 400;
     throw error;
   }
   return prisma.question.deleteMany({ where: { id: { in: ids } } });
+};
+
+/**
+ * Bulk-flip isPublished for every question that belongs to a paper.
+ * Called whenever a paper's publication state changes so that question
+ * status always mirrors the paper's status.
+ */
+exports.publishQuestions = async (paperId, isPublished) => {
+  return prisma.question.updateMany({
+    where: { paperId },
+    data: { isPublished },
+  });
 };
