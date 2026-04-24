@@ -51,6 +51,7 @@ router.get(
 
 router.post('/', validateRequest(createPaperSchema), paperController.store);
 router.patch('/:id', validateRequest(updatePaperSchema), paperController.update);
+router.patch('/:id/publish', validateRequest(paperIdParamsSchema), paperController.publish);
 router.delete('/', paperController.bulkDestroy);
 router.delete('/:id', validateRequest(paperIdParamsSchema), paperController.destroy);
 

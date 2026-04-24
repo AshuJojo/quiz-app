@@ -10,4 +10,10 @@ export const paperService = {
     const response = await apiClient.patch(`/papers/${id}`, data);
     return response.data;
   },
+
+  /** Dedicated endpoint — the only way to change isPublished. */
+  publishPaper: async (id: string, isPublished: boolean) => {
+    const response = await apiClient.patch(`/papers/${id}/publish`, { isPublished });
+    return response.data;
+  },
 };

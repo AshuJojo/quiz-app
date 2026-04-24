@@ -76,16 +76,53 @@ exports.updatePaper = async (id, data) => {
     throw err;
   }
 
-  if (data.examId) {
-    const examExists = await prisma.exam.findUnique({ where: { id: data.examId } });
-    if (!examExists) {
-      const err = new Error(`Exam not found: ${data.examId}`);
-      err.statusCode = 400;
-      throw err;
+  // Only allow whitelisted fields — isPublished is intentionally excluded
+  // so that "Save Progress" can never accidentally publish or unpublish a paper.
+  const {
+    title,
+    description,
+    examId,
+    positiveMarks,
+    negativeMarks,
+    hasSections,
+    duration,
+    paperDate,
+  } = data;
+  const safeData = {};
+  if (title !== undefined) safeData.title = title;
+  if (description !== undefined) safeData.description = description;
+  if (positiveMarks !== undefined) safeData.positiveMarks = positiveMarks;
+  if (negativeMarks !== undefined) safeData.negativeMarks = negativeMarks;
+  if (hasSections !== undefined) safeData.hasSections = hasSections;
+  if (duration !== undefined) safeData.duration = duration;
+  if (paperDate !== undefined) safeData.paperDate = paperDate;
+
+  if (examId !== undefined) {
+    if (examId === null || examId === '') {
+      safeData.examId = null;
+    } else {
+      const examExists = await prisma.exam.findUnique({ where: { id: examId } });
+      if (!examExists) {
+        const err = new Error(`Exam not found: ${examId}`);
+        err.statusCode = 400;
+        throw err;
+      }
+      safeData.examId = examId;
     }
   }
 
-  return prisma.paper.update({ where: { id }, data });
+  return prisma.paper.update({ where: { id }, data: safeData });
+};
+
+// Dedicated publish/unpublish — the ONLY way isPublished can change.
+exports.publishPaper = async (id, isPublished) => {
+  const targetPaper = await prisma.paper.findUnique({ where: { id } });
+  if (!targetPaper) {
+    const err = new Error('Paper not found');
+    err.statusCode = 404;
+    throw err;
+  }
+  return prisma.paper.update({ where: { id }, data: { isPublished } });
 };
 
 exports.deletePaper = async (id) => {
