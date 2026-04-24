@@ -30,6 +30,7 @@ export interface Question {
   sectionId: string;
   paperId: string;
   type?: string;
+  isPublished?: boolean;
   effectivePositiveMarks?: number;
   effectiveNegativeMarks?: number;
 }

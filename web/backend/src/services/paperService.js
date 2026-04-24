@@ -122,7 +122,12 @@ exports.publishPaper = async (id, isPublished) => {
     err.statusCode = 404;
     throw err;
   }
-  return prisma.paper.update({ where: { id }, data: { isPublished } });
+  // Cascade: paper + all its questions flip together
+  const [paper] = await prisma.$transaction([
+    prisma.paper.update({ where: { id }, data: { isPublished } }),
+    prisma.question.updateMany({ where: { paperId: id }, data: { isPublished } }),
+  ]);
+  return paper;
 };
 
 exports.deletePaper = async (id) => {

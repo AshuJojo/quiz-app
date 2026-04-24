@@ -76,8 +76,10 @@ export default function PaperBuilder({ id }: PaperBuilderProps) {
         isLoading={isLoading}
         isDirty={b.isDirty}
         isSaving={b.isSaving}
+        isPublished={b.isPublished}
         onSave={b.handleSave}
         onPublish={b.handlePublish}
+        onMoveToDraft={b.handleMoveToDraft}
         onBack={() => router.push('/papers')}
       />
 

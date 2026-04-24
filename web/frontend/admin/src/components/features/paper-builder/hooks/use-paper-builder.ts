@@ -45,6 +45,9 @@ export function usePaperBuilder(
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Derived from the server-fetched paper — not local state
+  const isPublished = paper?.isPublished ?? false;
+
   const [addedSectionIds, setAddedSectionIds] = useState<Set<string>>(new Set());
   const [removedSectionIds, setRemovedSectionIds] = useState<Set<string>>(new Set());
   const [renamedSections, setRenamedSections] = useState<Map<string, string>>(new Map());
@@ -632,16 +635,33 @@ export function usePaperBuilder(
     try {
       // 1. Save any pending content changes first (without touching isPublished)
       if (isDirty) await handleSave();
-      // 2. Flip isPublished via the dedicated endpoint
+      // 2. Flip isPublished via the dedicated endpoint (cascades to questions)
       await paperService.publishPaper(paperId, true);
       toast.success('Paper published successfully');
       queryClient.invalidateQueries({ queryKey: ['paper', paperId] });
+      queryClient.invalidateQueries({ queryKey: ['paper-questions', paperId] });
     } catch {
       toast.error('Failed to publish paper');
     } finally {
       setIsSaving(false);
     }
   }, [handleSave, isDirty, paperId, queryClient]);
+
+  const handleMoveToDraft = useCallback(async () => {
+    if (!window.confirm('Move this paper back to draft? It will no longer be visible to students.'))
+      return;
+    setIsSaving(true);
+    try {
+      await paperService.publishPaper(paperId, false);
+      toast.success('Paper moved to draft');
+      queryClient.invalidateQueries({ queryKey: ['paper', paperId] });
+      queryClient.invalidateQueries({ queryKey: ['paper-questions', paperId] });
+    } catch {
+      toast.error('Failed to move paper to draft');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [paperId, queryClient]);
 
   return {
     localSections,
@@ -709,5 +729,7 @@ export function usePaperBuilder(
     handleDeleteOption,
     handleSave,
     handlePublish,
+    handleMoveToDraft,
+    isPublished,
   };
 }

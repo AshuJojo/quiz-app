@@ -193,3 +193,15 @@ exports.deleteQuestions = async (ids) => {
   }
   return prisma.question.deleteMany({ where: { id: { in: ids } } });
 };
+
+/**
+ * Bulk-flip isPublished for every question that belongs to a paper.
+ * Called whenever a paper's publication state changes so that question
+ * status always mirrors the paper's status.
+ */
+exports.publishQuestions = async (paperId, isPublished) => {
+  return prisma.question.updateMany({
+    where: { paperId },
+    data: { isPublished },
+  });
+};
