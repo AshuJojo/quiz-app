@@ -53,12 +53,7 @@ exports.createPaper = async (data) => {
     }
   }
 
-  const paper = await prisma.paper.create({ data });
-  await prisma.section.create({
-    data: { title: 'Uncategorized', isDefault: true, order: 0, paperId: paper.id },
-  });
-
-  return paper;
+  return prisma.paper.create({ data });
 };
 
 exports.updatePaper = async (id, data) => {

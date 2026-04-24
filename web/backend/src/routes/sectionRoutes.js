@@ -7,28 +7,26 @@ const {
   bulkUpdateSectionsSchema,
   bulkDeleteSectionsSchema,
   sectionIdParamsSchema,
-  paperIdParamsSchema,
 } = require('../schemas/sectionSchema');
 
 const router = express.Router();
 
-// GET /api/papers/:paperId/sections  — mounted under paperRoutes
 // GET /api/sections/:id
 router.get('/:id', validateRequest(sectionIdParamsSchema), sectionController.show);
 
-// POST /api/sections  — create single or bulk
+// POST /api/sections
 router.post('/', validateRequest(createSectionsSchema), sectionController.store);
 
-// PATCH /api/sections/:id  — update single
+// PATCH /api/sections/:id
 router.patch('/:id', validateRequest(updateSectionSchema), sectionController.update);
 
-// PATCH /api/sections  — bulk update (also used for reordering)
+// PATCH /api/sections  — bulk update titles
 router.patch('/', validateRequest(bulkUpdateSectionsSchema), sectionController.bulkUpdate);
 
-// DELETE /api/sections/:id  — delete single (moves questions to uncategorized)
+// DELETE /api/sections/:id
 router.delete('/:id', validateRequest(sectionIdParamsSchema), sectionController.destroy);
 
-// DELETE /api/sections  — bulk delete (moves questions to uncategorized)
+// DELETE /api/sections
 router.delete('/', validateRequest(bulkDeleteSectionsSchema), sectionController.bulkDestroy);
 
 module.exports = router;

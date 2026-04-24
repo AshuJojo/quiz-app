@@ -1,7 +1,8 @@
 'use client';
 
 import { Question, Section } from '@/components/features/papers/types';
-import { ChevronDown, ChevronRight, GripVertical, LayoutGrid, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, GripVertical, LayoutGrid, Plus, Trash2, X } from 'lucide-react';
+import { useState } from 'react';
 
 interface PaperNavigatorProps {
   isLoading: boolean;
@@ -15,6 +16,7 @@ interface PaperNavigatorProps {
   draggedQuestionId: string | null;
   draggedSectionId: string | null;
   totalQuestionsCount: number;
+  availableExamSections: Section[];
   onEditingSectionTitleChange: (title: string) => void;
   onSelectQuestion: (q: Question) => void;
   onToggleSection: (id: string) => void;
@@ -26,7 +28,7 @@ interface PaperNavigatorProps {
   onDropOnSection: (e: React.DragEvent, sId: string) => void;
   onDropSection: (e: React.DragEvent, tId: string) => void;
   onDragOver: (e: React.DragEvent) => void;
-  onAddSection: () => void;
+  onAddSection: (sectionId: string) => void;
   onDeleteSection: (id: string) => void;
   onAddQuestion: (sId: string) => void;
 }
@@ -43,6 +45,7 @@ export default function PaperNavigator({
   draggedQuestionId,
   draggedSectionId,
   totalQuestionsCount,
+  availableExamSections,
   onEditingSectionTitleChange,
   onSelectQuestion,
   onToggleSection,
@@ -58,6 +61,8 @@ export default function PaperNavigator({
   onDeleteSection,
   onAddQuestion,
 }: PaperNavigatorProps) {
+  const [showSectionPicker, setShowSectionPicker] = useState(false);
+
   return (
     <aside className="w-80 flex flex-col bg-surface-container-low border-r border-outline-variant/10 overflow-hidden shadow-[inset_-10px_0_30px_-15px_rgba(0,0,0,0.03)]">
       <div className="flex-1 flex flex-col p-4 overflow-y-auto custom-scrollbar space-y-2">
@@ -84,18 +89,12 @@ export default function PaperNavigator({
             </div>
             <div>
               <p className="text-[11px] font-black uppercase tracking-widest text-on-surface-variant">
-                No Sections Found
+                No Sections Added
               </p>
               <p className="text-[10px] text-on-surface-variant/60 mt-1">
-                Start by adding your first question section.
+                Add sections from the exam to start building.
               </p>
             </div>
-            <button
-              onClick={onAddSection}
-              className="px-4 py-2 rounded-xl bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest hover:bg-primary/20 transition-all"
-            >
-              Create Section
-            </button>
           </div>
         ) : hasSections ? (
           localSections.map((section: Section) => (
@@ -158,8 +157,9 @@ export default function PaperNavigator({
                   <button
                     onClick={() => onDeleteSection(section.id)}
                     className="p-1.5 opacity-0 group-hover:opacity-100 text-on-surface-variant/40 hover:text-error hover:bg-error/5 rounded-lg transition-all"
+                    title="Remove from paper"
                   >
-                    <Trash2 size={14} />
+                    <X size={14} />
                   </button>
                 </div>
               </div>
@@ -192,7 +192,6 @@ export default function PaperNavigator({
                       </button>
                     </div>
                   ))}
-
                   <button
                     onClick={() => onAddQuestion(section.id)}
                     className="w-9 h-9 rounded-full flex items-center justify-center border-2 border-dashed border-outline-variant/40 text-on-surface-variant/30 hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all"
@@ -210,7 +209,6 @@ export default function PaperNavigator({
                 Questions
               </span>
             </div>
-
             <div className="pl-6 pr-2 pt-2 grid grid-cols-5 gap-y-4 gap-x-2">
               {allQuestions.map((q: Question, idx: number) => (
                 <div
@@ -234,7 +232,6 @@ export default function PaperNavigator({
                   </button>
                 </div>
               ))}
-
               <button
                 onClick={() => onAddQuestion(localSections[0]?.id)}
                 className="w-9 h-9 rounded-full flex items-center justify-center border-2 border-dashed border-outline-variant/40 text-on-surface-variant/30 hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all"
@@ -245,18 +242,51 @@ export default function PaperNavigator({
           </div>
         )}
 
-        {!isLoading && localSections.length > 0 && hasSections && (
-          <button
-            onClick={onAddSection}
-            className="mt-4 mb-4 flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed border-outline-variant/20 text-on-surface-variant/40 hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all text-[11px] font-black uppercase tracking-widest group"
-          >
-            <Plus
-              size={18}
-              strokeWidth={3}
-              className="group-hover:scale-110 transition-transform"
-            />
-            Add New Section
-          </button>
+        {/* Section picker */}
+        {!isLoading && hasSections && (
+          <div className="mt-4 mb-2 relative">
+            <button
+              onClick={() => setShowSectionPicker((v) => !v)}
+              disabled={availableExamSections.length === 0}
+              className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed border-outline-variant/20 text-on-surface-variant/40 hover:border-primary/50 hover:text-primary hover:bg-primary/5 transition-all text-[11px] font-black uppercase tracking-widest group disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <Plus
+                size={18}
+                strokeWidth={3}
+                className="group-hover:scale-110 transition-transform"
+              />
+              {availableExamSections.length === 0 ? 'All Sections Added' : 'Add Section'}
+            </button>
+
+            {showSectionPicker && availableExamSections.length > 0 && (
+              <div className="absolute bottom-full left-0 right-0 mb-2 bg-surface-container-lowest border border-outline-variant/10 rounded-2xl shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                <div className="p-2 border-b border-outline-variant/5">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-on-surface-variant/40 px-2">
+                    Exam Sections
+                  </p>
+                </div>
+                <div className="max-h-48 overflow-y-auto p-2 space-y-1">
+                  {availableExamSections.map((section) => (
+                    <button
+                      key={section.id}
+                      onClick={() => {
+                        onAddSection(section.id);
+                        setShowSectionPicker(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-container-low transition-all text-left group/item"
+                    >
+                      <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover/item:bg-primary/20 transition-colors">
+                        <Plus size={12} strokeWidth={3} className="text-primary" />
+                      </div>
+                      <span className="text-[11px] font-black uppercase tracking-widest text-on-surface-variant/70 group-hover/item:text-on-background transition-colors truncate">
+                        {section.title}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
 

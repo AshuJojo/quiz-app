@@ -3,6 +3,7 @@
 import { paperService } from '@/components/features/papers/services';
 import { examService } from '@/components/features/exams/services';
 import { sectionService, questionService } from '../services';
+
 import { usePaperBuilder } from '@/components/features/paper-builder/hooks/use-paper-builder';
 import { Paper, Section, Question } from '@/components/features/papers/types';
 import { useQuery } from '@tanstack/react-query';
@@ -48,10 +49,18 @@ export default function PaperBuilder({ id }: PaperBuilderProps) {
   const questions = questionsResult?.data as Question[] | undefined;
   const exams = (examsResult?.data as any[]) || [];
 
+  // Fetch exam's sections so user can add them to the paper
+  const { data: examSectionsResult } = useQuery({
+    queryKey: ['exam-sections', paper?.examId],
+    queryFn: () => (paper?.examId ? sectionService.getSectionsByExamId(paper.examId) : null),
+    enabled: !!paper?.examId,
+  });
+  const examSections = (examSectionsResult?.data as Section[]) ?? [];
+
   const isLoading = isPaperLoading || isSectionsLoading || isQuestionsLoading;
   const isSuccess = !!paper && !!sections && !!questions;
 
-  const b = usePaperBuilder(id, paper, sections, questions, isSuccess);
+  const b = usePaperBuilder(id, paper, sections, questions, examSections, isSuccess);
 
   // Fetch specific exam details to get the fullPath for selectedLabel
   const { data: selectedExamResult } = useQuery({
@@ -85,6 +94,7 @@ export default function PaperBuilder({ id }: PaperBuilderProps) {
           draggedQuestionId={b.draggedQuestionId}
           draggedSectionId={b.draggedSectionId}
           totalQuestionsCount={b.allQuestions.length}
+          availableExamSections={b.availableExamSections}
           onEditingSectionTitleChange={b.setEditingSectionTitle}
           onSelectQuestion={b.handleSelectQuestion}
           onToggleSection={b.toggleSection}
