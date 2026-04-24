@@ -122,10 +122,12 @@ export default function PaperBuilder({ id }: PaperBuilderProps) {
           questionContent={b.questionContent}
           options={b.options}
           correctOptionIndex={b.correctOptionIndex}
+          validationErrors={b.validationErrors}
           onActiveItemIdChange={(id) => b.setActiveItemId(id)}
           onQuestionContentChange={b.setQuestionContent}
           onOptionContentChange={b.handleOptionContentChange}
           onSetCorrectOption={b.handleSetCorrectOption}
+          onDuplicateQuestion={b.handleDuplicateQuestion}
           onDeleteQuestion={b.handleDeleteQuestion}
           onAddOption={b.handleAddOption}
           onDeleteOption={b.handleDeleteOption}

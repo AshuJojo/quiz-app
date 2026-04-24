@@ -17,10 +17,12 @@ interface QuestionWorkspaceProps {
   questionContent: OutputData;
   options: Option[];
   correctOptionIndex: number;
+  validationErrors: Set<string>;
   onActiveItemIdChange: (id: string) => void;
   onQuestionContentChange: (data: OutputData) => void;
   onOptionContentChange: (index: number, data: any) => void;
   onSetCorrectOption: (index: number) => void;
+  onDuplicateQuestion: (id: string) => void;
   onDeleteQuestion: (id: string) => void;
   onAddOption: () => void;
   onDeleteOption: (index: number) => void;
@@ -33,14 +35,18 @@ export default function QuestionWorkspace({
   questionContent,
   options,
   correctOptionIndex,
+  validationErrors,
   onActiveItemIdChange,
   onQuestionContentChange,
   onOptionContentChange,
   onSetCorrectOption,
+  onDuplicateQuestion,
   onDeleteQuestion,
   onAddOption,
   onDeleteOption,
 }: QuestionWorkspaceProps) {
+  const qError = activeQuestionId ? validationErrors.has(`q:${activeQuestionId}`) : false;
+
   return (
     <main className="flex-1 bg-background relative overflow-y-auto p-12 flex flex-col items-center dot-pattern">
       <div className="w-full max-w-3xl animate-in slide-in-from-bottom-4 duration-1000">
@@ -65,7 +71,11 @@ export default function QuestionWorkspace({
             </div>
 
             <div className="flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-opacity duration-500">
-              <button className="p-2.5 text-on-surface-variant/40 hover:text-on-background hover:bg-surface-container transition-all rounded-xl">
+              <button
+                onClick={() => activeQuestionId && onDuplicateQuestion(activeQuestionId)}
+                className="p-2.5 text-on-surface-variant/40 hover:text-on-background hover:bg-surface-container transition-all rounded-xl"
+                title="Duplicate question"
+              >
                 <Copy size={18} />
               </button>
               <button
@@ -77,68 +87,93 @@ export default function QuestionWorkspace({
             </div>
           </div>
 
+          {/* Question editor */}
           <div className="mb-6">
-            <Editor
-              key={activeQuestionId ?? 'empty'}
-              data={questionContent}
-              onChange={onQuestionContentChange}
-              placeholder="Type your question here..."
-            />
+            <div
+              className={`rounded-2xl transition-all duration-200 ${
+                qError ? 'border-2 border-red-400 bg-red-50/60' : ''
+              }`}
+            >
+              <Editor
+                key={activeQuestionId ?? 'empty'}
+                data={questionContent}
+                onChange={onQuestionContentChange}
+                placeholder="Type your question here..."
+              />
+            </div>
+            {qError && (
+              <p className="text-red-500 text-[11px] font-bold mt-1.5 ml-1 flex items-center gap-1 animate-in fade-in duration-200">
+                <span>⚠</span> Question cannot be empty.
+              </p>
+            )}
           </div>
 
           <div className="space-y-4">
             {options.map((option, index) => {
               const itemKey = `option-${index}`;
               const isCorrect = index === correctOptionIndex;
-              return (
-                <div
-                  key={`${activeQuestionId}-opt-${index}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onActiveItemIdChange(itemKey);
-                  }}
-                  className={`group/option flex items-start gap-4 p-5 rounded-[1.5rem] transition-all duration-300 border border-transparent relative ${
-                    activeItemId === itemKey
-                      ? 'bg-surface-container-low z-30 ring-1 ring-primary/5 shadow-sm'
-                      : 'bg-surface-container-low/50 hover:bg-surface-container-low z-0 hover:z-10'
-                  }`}
-                >
-                  <div className="mt-2.5 p-1 cursor-grab active:cursor-grabbing text-on-surface-variant/20 group-hover/option:text-on-surface-variant/40 transition-colors">
-                    <GripVertical size={16} />
-                  </div>
+              const optError = activeQuestionId
+                ? validationErrors.has(`o:${activeQuestionId}:${index}`)
+                : false;
 
-                  <button
-                    onClick={() => onSetCorrectOption(index)}
-                    className={`mt-2 flex-shrink-0 transition-all duration-500 ${
-                      isCorrect
-                        ? 'text-primary scale-110'
-                        : 'text-on-surface-variant/20 hover:text-on-surface-variant/40'
+              return (
+                <div key={`${activeQuestionId}-opt-${index}`}>
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onActiveItemIdChange(itemKey);
+                    }}
+                    className={`group/option flex items-start gap-4 p-5 rounded-[1.5rem] transition-all duration-300 border relative ${
+                      optError
+                        ? 'border-2 border-red-400 bg-red-50/60'
+                        : activeItemId === itemKey
+                          ? 'border-transparent bg-surface-container-low z-30 ring-1 ring-primary/5 shadow-sm'
+                          : 'border-transparent bg-surface-container-low/50 hover:bg-surface-container-low z-0 hover:z-10'
                     }`}
                   >
-                    {isCorrect ? (
-                      <CircleDot size={24} strokeWidth={2.5} />
-                    ) : (
-                      <Circle size={24} strokeWidth={2} />
-                    )}
-                  </button>
+                    <div className="mt-2.5 p-1 cursor-grab active:cursor-grabbing text-on-surface-variant/20 group-hover/option:text-on-surface-variant/40 transition-colors">
+                      <GripVertical size={16} />
+                    </div>
 
-                  <div className="flex-1 min-h-[40px]">
-                    <Editor
-                      key={`${activeQuestionId}-opt-${index}`}
-                      data={option.content as OutputData}
-                      onChange={(data) => onOptionContentChange(index, data)}
-                      placeholder={`Option ${index + 1}`}
-                    />
-                  </div>
-
-                  <div className="mt-2 flex items-center gap-1 opacity-0 group-hover/option:opacity-100 transition-all duration-300">
                     <button
-                      onClick={() => onDeleteOption(index)}
-                      className="p-2 text-on-surface-variant/40 hover:text-error transition-colors"
+                      onClick={() => onSetCorrectOption(index)}
+                      className={`mt-2 flex-shrink-0 transition-all duration-500 ${
+                        isCorrect
+                          ? 'text-primary scale-110'
+                          : 'text-on-surface-variant/20 hover:text-on-surface-variant/40'
+                      }`}
                     >
-                      <X size={16} />
+                      {isCorrect ? (
+                        <CircleDot size={24} strokeWidth={2.5} />
+                      ) : (
+                        <Circle size={24} strokeWidth={2} />
+                      )}
                     </button>
+
+                    <div className="flex-1 min-h-[40px]">
+                      <Editor
+                        key={`${activeQuestionId}-opt-${index}`}
+                        data={option.content as OutputData}
+                        onChange={(data) => onOptionContentChange(index, data)}
+                        placeholder={`Option ${index + 1}`}
+                      />
+                    </div>
+
+                    <div className="mt-2 flex items-center gap-1 opacity-0 group-hover/option:opacity-100 transition-all duration-300">
+                      <button
+                        onClick={() => onDeleteOption(index)}
+                        className="p-2 text-on-surface-variant/40 hover:text-error transition-colors"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
                   </div>
+
+                  {optError && (
+                    <p className="text-red-500 text-[11px] font-bold mt-1.5 ml-14 flex items-center gap-1 animate-in fade-in duration-200">
+                      <span>⚠</span> Option cannot be empty.
+                    </p>
+                  )}
                 </div>
               );
             })}

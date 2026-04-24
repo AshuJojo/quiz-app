@@ -16,6 +16,25 @@ const generateId = () => {
   return Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
 };
 
+/** Strip leading/trailing empty paragraph blocks from EditorJS output. */
+const trimBlocks = (data: any): any => {
+  if (!data?.blocks?.length) return data;
+  const isEmpty = (block: any) =>
+    (block?.data?.text ?? '').replace(/<[^>]*>/g, '').trim().length === 0;
+  const blocks = [...data.blocks];
+  while (blocks.length > 0 && isEmpty(blocks[0])) blocks.shift();
+  while (blocks.length > 0 && isEmpty(blocks[blocks.length - 1])) blocks.pop();
+  return { ...data, blocks };
+};
+
+/** True if the EditorJS output has at least one block with visible text. */
+const hasTextContent = (data: any): boolean => {
+  if (!data?.blocks?.length) return false;
+  return data.blocks.some(
+    (block: any) => (block?.data?.text ?? '').replace(/<[^>]*>/g, '').trim().length > 0
+  );
+};
+
 const EMPTY_OPTIONS: Option[] = [
   { content: { blocks: [] } },
   { content: { blocks: [] } },
@@ -78,6 +97,9 @@ export function usePaperBuilder(
   const [questionPositiveMarks, setQuestionPositiveMarks] = useState<number | null>(null);
   const [questionNegativeMarks, setQuestionNegativeMarks] = useState<number | null>(null);
 
+  // Keys: `q:{id}` = empty question text, `o:{id}:{i}` = empty option i
+  const [validationErrors, setValidationErrors] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     if (paper) {
       setPaperDescription(paper.description || '');
@@ -120,6 +142,16 @@ export function usePaperBuilder(
         }))
       );
       setIsDirty(true);
+      // Clear validation errors for the active question as the user edits
+      setValidationErrors((prev) => {
+        if (prev.size === 0 || !activeQuestionId) return prev;
+        const next = new Set(prev);
+        if (hasTextContent(questionContent)) next.delete(`q:${activeQuestionId}`);
+        options.forEach((opt, i) => {
+          if (hasTextContent(opt.content)) next.delete(`o:${activeQuestionId}:${i}`);
+        });
+        return next.size === prev.size ? prev : next;
+      });
     }
   }, [
     questionContent,
@@ -468,6 +500,29 @@ export function usePaperBuilder(
     [activeQuestionId]
   );
 
+  const handleDuplicateQuestion = useCallback((qId: string) => {
+    const duplicateId = `temp-${generateId()}`;
+    setLocalSections((prev) =>
+      prev.map((section) => {
+        const qIdx = section.questions?.findIndex((q) => q.id === qId);
+        if (qIdx === undefined || qIdx === -1) return section;
+        const original = section.questions![qIdx];
+        const duplicate: Question = {
+          ...original,
+          id: duplicateId,
+          options: original.options.map((opt: Option) => ({ ...opt })),
+        };
+        const next = [...section.questions!];
+        next.splice(qIdx + 1, 0, duplicate);
+        return { ...section, questions: next };
+      })
+    );
+    // Switch active question to the duplicate — the write-back effect will copy the
+    // current workspace content (which matches the original) into the duplicate.
+    setActiveQuestionId(duplicateId);
+    setIsDirty(true);
+  }, []);
+
   const handleAddOption = useCallback(() => {
     setOptions((prev) => [...prev, { content: { blocks: [] } }]);
   }, []);
@@ -483,36 +538,80 @@ export function usePaperBuilder(
 
   const handleSave = useCallback(async () => {
     if (!isDirty || isSaving) return;
+
+    // ── Validate before saving ───────────────────────────────────────────────
+    const allQsForValidation = localSections.flatMap((s) => s.questions || []);
+    const errors = new Set<string>();
+    allQsForValidation.forEach((q) => {
+      if (!hasTextContent(q.question)) errors.add(`q:${q.id}`);
+      q.options?.forEach((opt, i) => {
+        if (!hasTextContent(opt?.content)) errors.add(`o:${q.id}:${i}`);
+      });
+    });
+    if (errors.size > 0) {
+      setValidationErrors(errors);
+      // Auto-navigate to the first question that has an error
+      const firstErrorQ = allQsForValidation.find(
+        (q) =>
+          errors.has(`q:${q.id}`) ||
+          q.options?.some((_: any, i: number) => errors.has(`o:${q.id}:${i}`))
+      );
+      if (firstErrorQ) {
+        setActiveQuestionId(firstErrorQ.id);
+        setQuestionContent(firstErrorQ.question);
+        setOptions(firstErrorQ.options ?? []);
+        setCorrectOptionIndex(firstErrorQ.correctOptionIndex ?? 0);
+        setQuestionExplanation(firstErrorQ.explanation || '');
+        setQuestionPositiveMarks(firstErrorQ.positiveMarks ?? null);
+        setQuestionNegativeMarks(firstErrorQ.negativeMarks ?? null);
+      }
+      toast.error('Some questions or options are empty — highlighted in red.');
+      return;
+    }
+    setValidationErrors(new Set());
+
     setIsSaving(true);
     try {
       const allQs = localSections.flatMap((s) => s.questions || []);
       const tempQuestions = allQs.filter((q) => q.id.startsWith('temp-'));
 
+      const trimQuestion = (q: any) => ({
+        ...q,
+        question: trimBlocks(q.question),
+        options: q.options.map((opt: any) => ({ ...opt, content: trimBlocks(opt.content) })),
+      });
+
       const questionUpdates = allQs
         .filter((q) => !q.id.startsWith('temp-'))
-        .map((q, idx) => ({
-          id: q.id,
-          question: q.question,
-          options: q.options,
-          explanation: q.explanation,
-          positiveMarks: q.positiveMarks,
-          negativeMarks: q.negativeMarks,
-          correctOptionIndex: q.correctOptionIndex ?? 0,
-          sectionId: q.sectionId,
-          order: idx,
-        }));
+        .map((q, idx) => {
+          const t = trimQuestion(q);
+          return {
+            id: t.id,
+            question: t.question,
+            options: t.options,
+            explanation: t.explanation,
+            positiveMarks: t.positiveMarks,
+            negativeMarks: t.negativeMarks,
+            correctOptionIndex: t.correctOptionIndex ?? 0,
+            sectionId: t.sectionId,
+            order: idx,
+          };
+        });
 
-      const newQuestions = tempQuestions.map((q, idx) => ({
-        question: q.question,
-        options: q.options,
-        explanation: q.explanation,
-        positiveMarks: q.positiveMarks,
-        negativeMarks: q.negativeMarks,
-        correctOptionIndex: q.correctOptionIndex ?? 0,
-        sectionId: q.sectionId,
-        paperId,
-        order: idx,
-      }));
+      const newQuestions = tempQuestions.map((q, idx) => {
+        const t = trimQuestion(q);
+        return {
+          question: t.question,
+          options: t.options,
+          explanation: t.explanation,
+          positiveMarks: t.positiveMarks,
+          negativeMarks: t.negativeMarks,
+          correctOptionIndex: t.correctOptionIndex ?? 0,
+          sectionId: t.sectionId,
+          paperId,
+          order: idx,
+        };
+      });
 
       const paperUpdate = {
         description: paperDescription,
@@ -725,6 +824,8 @@ export function usePaperBuilder(
     handleDeleteSection,
     handleAddQuestion,
     handleDeleteQuestion,
+    validationErrors,
+    handleDuplicateQuestion,
     handleAddOption,
     handleDeleteOption,
     handleSave,
