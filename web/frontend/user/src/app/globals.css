@@ -1,0 +1,71 @@
+@import 'tailwindcss';
+
+:root {
+  --primary: #047857;
+  --primary-container: #b7f2dc;
+  --background: #f8f9fa;
+  --on-background: #2d3335;
+  --surface-container-low: #f1f4f5;
+  --surface-container-lowest: #ffffff;
+  --surface-container: #ebeef0;
+  --on-surface: #2d3335;
+  --on-surface-variant: #5f6368;
+  --outline-variant: #adb3b5;
+}
+
+@theme inline {
+  --color-primary: var(--primary);
+  --color-primary-container: var(--primary-container);
+  --color-background: var(--background);
+  --color-on-background: var(--on-background);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-surface-container: var(--surface-container);
+  --color-on-surface: var(--on-surface);
+  --color-on-surface-variant: var(--on-surface-variant);
+  --color-outline-variant: var(--outline-variant);
+
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-manrope);
+
+  --radius-md: 0.75rem;
+  --radius-sm: 0.375rem;
+
+  --shadow-ambient: 0 8px 32px rgba(45, 51, 53, 0.06);
+}
+
+body {
+  background: var(--background);
+  color: var(--on-background);
+  font-family: var(--font-inter), sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-manrope), sans-serif;
+}
+
+@layer utilities {
+  .dot-pattern {
+    background-image: radial-gradient(var(--outline-variant) 1px, transparent 1px);
+    background-position: center;
+    background-size: 24px 24px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 2px;
+  }
+}
