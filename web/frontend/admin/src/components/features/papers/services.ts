@@ -9,6 +9,13 @@ export const paperService = {
     return response.data;
   },
 
+  getRootPapers: async (examId?: string, search?: string, page: number = 1, limit: number = 10) => {
+    const response = await apiClient.get('/papers', {
+      params: { examId, search, page, limit, variant: 0 },
+    });
+    return response.data;
+  },
+
   getPaper: async (id: string) => {
     const response = await apiClient.get(`/papers/${id}`);
     return response.data;

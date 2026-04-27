@@ -19,7 +19,7 @@ export default function PapersPage() {
 
   const { data: papersData, isLoading } = useQuery({
     queryKey: ['papers', searchQuery, currentPage],
-    queryFn: () => paperService.getPapers(undefined, searchQuery, currentPage),
+    queryFn: () => paperService.getRootPapers(undefined, searchQuery, currentPage),
   });
 
   const papers = Array.isArray(papersData?.data) ? papersData.data : [];

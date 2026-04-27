@@ -2,8 +2,9 @@ const paperService = require('../services/paperService');
 
 exports.index = async (req, res, next) => {
   try {
-    const { examId, search, page = 1, limit = 10 } = req.query;
-    const { papers, total } = await paperService.getPapers(examId, search, page, limit);
+    const { examId, search, page = 1, limit = 10, variant } = req.query;
+    console.log('controller variant', variant);
+    const { papers, total } = await paperService.getPapers(examId, search, page, limit, variant);
     res.status(200).json({
       success: true,
       count: papers.length,

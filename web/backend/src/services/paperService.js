@@ -1,12 +1,16 @@
 const prisma = require('../config/db');
 const { getExamPath } = require('./examService');
 
-exports.getPapers = async (examId, search, page = 1, limit = 10) => {
+exports.getPapers = async (examId, search, page = 1, limit = 10, variant) => {
   const skip = (page - 1) * limit;
   const where = {};
 
   if (search) where.title = { contains: search, mode: 'insensitive' };
   if (examId) where.examId = examId;
+  if (variant === '0') where.parentPaperId = null;
+
+  console.log('where', where);
+  console.log('variant', variant);
 
   const [total, papers] = await Promise.all([
     prisma.paper.count({ where }),
