@@ -69,6 +69,24 @@ exports.destroy = async (req, res, next) => {
   }
 };
 
+exports.variants = async (req, res, next) => {
+  try {
+    const data = await paperService.getVariants(req.params.id);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.createVariant = async (req, res, next) => {
+  try {
+    const paper = await paperService.createVariant(req.params.id, req.body);
+    res.status(201).json({ success: true, data: paper });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.bulkDestroy = async (req, res, next) => {
   try {
     const result = await paperService.bulkDeletePapers(req.body.ids);

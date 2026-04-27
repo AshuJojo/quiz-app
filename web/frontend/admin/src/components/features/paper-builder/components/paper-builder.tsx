@@ -2,10 +2,10 @@
 
 import { paperService } from '@/components/features/papers/services';
 import { examService } from '@/components/features/exams/services';
-import { sectionService, questionService } from '../services';
+import { sectionService, questionService, paperService as builderPaperService } from '../services';
 
 import { usePaperBuilder } from '@/components/features/paper-builder/hooks/use-paper-builder';
-import { Paper, Section, Question } from '@/components/features/papers/types';
+import { Paper, PaperVariant, Section, Question } from '@/components/features/papers/types';
 import { useQuery } from '@tanstack/react-query';
 import { LayoutGrid, Settings2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -59,6 +59,14 @@ export default function PaperBuilder({ id }: PaperBuilderProps) {
   });
   const examSections = (examSectionsResult?.data as Section[]) ?? [];
 
+  // Fetch all language variants (root + siblings) for this paper family
+  const { data: variantsResult, refetch: refetchVariants } = useQuery({
+    queryKey: ['paper-variants', id],
+    queryFn: () => builderPaperService.getVariants(id),
+    enabled: !!paper,
+  });
+  const variants = (variantsResult?.data as PaperVariant[]) ?? [];
+
   const isLoading = isPaperLoading || isSectionsLoading || isQuestionsLoading;
   const isSuccess = !!paper && !!sections && !!questions;
 
@@ -70,6 +78,35 @@ export default function PaperBuilder({ id }: PaperBuilderProps) {
     queryFn: () => (b.selectedExamId ? examService.getExam(b.selectedExamId) : null),
     enabled: !!b.selectedExamId,
   });
+
+  const handleCreateVariant = async (language: string) => {
+    const result = await builderPaperService.createVariant(id, { language });
+    await refetchVariants();
+    router.push(`/papers/${result.data.id}`);
+  };
+
+  const handleRenameVariant = async (variantId: string, variantName: string) => {
+    await builderPaperService.updatePaper(variantId, { variantName });
+    await refetchVariants();
+  };
+
+  const handleDeleteVariant = async (variantId: string) => {
+    await builderPaperService.deleteVariant(variantId);
+    await refetchVariants();
+    // If we just deleted the open paper, navigate to the default (root) variant
+    if (variantId === id) {
+      const root = variants.find((v) => v.isDefault && v.id !== variantId);
+      router.push(`/papers/${root!.id}`);
+    }
+  };
+
+  const handleSwitchVariant = async (variantId: string) => {
+    if (b.isDirty) {
+      const saved = await b.handleSave();
+      if (!saved) return; // save failed or had validation errors — stay on current
+    }
+    router.push(`/papers/${variantId}`);
+  };
 
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden animate-in fade-in duration-700">
@@ -197,6 +234,8 @@ export default function PaperBuilder({ id }: PaperBuilderProps) {
                 duration={b.paperDuration}
                 paperDate={b.paperDate}
                 hasPaperDate={b.hasPaperDate}
+                variants={variants}
+                currentPaperId={id}
                 onDescriptionChange={b.setPaperDescription}
                 onExamIdChange={b.setSelectedExamId}
                 onFetchChildren={async (parentId) => {
@@ -213,6 +252,10 @@ export default function PaperBuilder({ id }: PaperBuilderProps) {
                 onDurationChange={b.setPaperDuration}
                 onPaperDateChange={b.setPaperDate}
                 onHasPaperDateChange={b.setHasPaperDate}
+                onCreateVariant={handleCreateVariant}
+                onRenameVariant={handleRenameVariant}
+                onDeleteVariant={handleDeleteVariant}
+                onSwitchVariant={handleSwitchVariant}
               />
             )}
           </div>

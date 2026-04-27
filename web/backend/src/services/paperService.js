@@ -81,6 +81,7 @@ exports.updatePaper = async (id, data) => {
   const {
     title,
     description,
+    variantName,
     examId,
     positiveMarks,
     negativeMarks,
@@ -91,6 +92,7 @@ exports.updatePaper = async (id, data) => {
   const safeData = {};
   if (title !== undefined) safeData.title = title;
   if (description !== undefined) safeData.description = description;
+  if (variantName !== undefined) safeData.variantName = variantName;
   if (positiveMarks !== undefined) safeData.positiveMarks = positiveMarks;
   if (negativeMarks !== undefined) safeData.negativeMarks = negativeMarks;
   if (hasSections !== undefined) safeData.hasSections = hasSections;
@@ -131,14 +133,128 @@ exports.publishPaper = async (id, isPublished) => {
 };
 
 exports.deletePaper = async (id) => {
-  const paper = await prisma.paper.findUnique({ where: { id } });
+  const paper = await prisma.paper.findUnique({
+    where: { id },
+    include: { _count: { select: { variants: true } } },
+  });
+  if (!paper) {
+    const err = new Error('Paper not found');
+    err.statusCode = 404;
+    throw err;
+  }
+  if (!paper.parentPaperId && paper._count.variants > 0) {
+    const err = new Error('Cannot delete the default variant while other variants exist');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  return prisma.paper.delete({ where: { id } });
+};
+
+exports.getVariants = async (paperId) => {
+  const paper = await prisma.paper.findUnique({
+    where: { id: paperId },
+    select: { id: true, title: true, variantName: true, parentPaperId: true },
+  });
   if (!paper) {
     const err = new Error('Paper not found');
     err.statusCode = 404;
     throw err;
   }
 
-  return prisma.paper.delete({ where: { id } });
+  // Root = this paper if it has no parent, otherwise go up one level
+  const rootId = paper.parentPaperId ?? paperId;
+
+  const [root, children] = await Promise.all([
+    prisma.paper.findUnique({
+      where: { id: rootId },
+      select: { id: true, title: true, variantName: true },
+    }),
+    prisma.paper.findMany({
+      where: { parentPaperId: rootId },
+      select: { id: true, title: true, variantName: true },
+      orderBy: { createdAt: 'asc' },
+    }),
+  ]);
+
+  const all = [root, ...children].filter(Boolean);
+  // Tag the root so the frontend knows which variant is the default (undeletable)
+  return all.map((v) => ({ ...v, isDefault: v.id === rootId }));
+};
+
+exports.createVariant = async (parentPaperId, data) => {
+  const parent = await prisma.paper.findUnique({ where: { id: parentPaperId } });
+  if (!parent) {
+    const err = new Error('Parent paper not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  // Always link to the root paper, never chain variants
+  const rootId = parent.parentPaperId ?? parentPaperId;
+
+  const variantName = data.language || 'Hindi';
+
+  const paper = await prisma.paper.create({
+    data: {
+      title: parent.title,
+      variantName,
+      examId: parent.examId,
+      parentPaperId: rootId,
+      positiveMarks: parent.positiveMarks,
+      negativeMarks: parent.negativeMarks,
+      duration: parent.duration,
+      hasSections: parent.hasSections,
+    },
+  });
+
+  // Copy sections from the source paper (default + non-default)
+  const sourceSections = await prisma.paperSection.findMany({
+    where: { paperId: parentPaperId },
+    orderBy: { order: 'asc' },
+  });
+
+  // Replicate the default section with a fresh Uncategorized section
+  const defaultSection = await prisma.section.create({
+    data: { title: 'Uncategorized', examId: null },
+  });
+
+  await prisma.paperSection.createMany({
+    data: [
+      { paperId: paper.id, sectionId: defaultSection.id, order: 0, isDefault: true },
+      ...sourceSections
+        .filter((ps) => !ps.isDefault)
+        .map((ps) => ({
+          paperId: paper.id,
+          sectionId: ps.sectionId,
+          order: ps.order,
+          isDefault: false,
+        })),
+    ],
+    skipDuplicates: true,
+  });
+
+  // Copy all questions from the source paper into the new variant.
+  // Questions keep their sectionId (sections are shared via PaperSection).
+  // The default-section questions are re-pointed to the new default section.
+  const sourceDefaultSectionId = sourceSections.find((ps) => ps.isDefault)?.sectionId;
+  const sourceQuestions = await prisma.question.findMany({
+    where: { paperId: parentPaperId },
+    orderBy: [{ order: 'asc' }],
+  });
+
+  if (sourceQuestions.length > 0) {
+    await prisma.question.createMany({
+      data: sourceQuestions.map(({ id, paperId, createdAt, updatedAt, sectionId, ...rest }) => ({
+        ...rest,
+        paperId: paper.id,
+        // Remap the old default section to the new one; named sections stay the same
+        sectionId: sectionId === sourceDefaultSectionId ? defaultSection.id : sectionId,
+      })),
+    });
+  }
+
+  return paper;
 };
 
 exports.bulkDeletePapers = async (ids) => {

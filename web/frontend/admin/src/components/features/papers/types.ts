@@ -46,11 +46,19 @@ export interface Section {
   _count?: { questions: number; paperSections: number };
 }
 
+export interface PaperVariant {
+  id: string;
+  title: string;
+  variantName: string | null;
+  isDefault: boolean;
+}
+
 export interface Paper {
   id: string;
   title: string;
   examId: string;
   description?: string | null;
+  parentPaperId?: string | null;
   hasSections: boolean;
   positiveMarks: number;
   negativeMarks: number;

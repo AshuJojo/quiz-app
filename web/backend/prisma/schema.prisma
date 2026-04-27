@@ -32,6 +32,7 @@ model Paper {
   id            String         @id @default(uuid())
   title         String
   description   String?
+  variantName   String?
   hasSections   Boolean        @default(true)
   examId        String?
   exam          Exam?          @relation(fields: [examId], references: [id], onDelete: SetNull)
@@ -42,10 +43,14 @@ model Paper {
   duration      Int            @default(0)
   paperDate     DateTime?
   isPublished   Boolean        @default(false)
+  parentPaperId String?
+  parentPaper   Paper?         @relation("PaperVariants", fields: [parentPaperId], references: [id], onDelete: SetNull)
+  variants      Paper[]        @relation("PaperVariants")
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
   @@index([examId])
+  @@index([parentPaperId])
 }
 
 model Section {

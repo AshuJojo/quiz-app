@@ -4,7 +4,10 @@ import {
   HierarchicalSelect,
   TreeItem,
 } from '@/components/ui/hierarchical-select/hierarchical-select';
-import { Calendar, Layers, Target } from 'lucide-react';
+import { PaperVariant } from '@/components/features/papers/types';
+import { Calendar, Globe, Layers, Pencil, Plus, Target, Trash2 } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 interface PaperSettingsPanelProps {
   description: string;
@@ -17,6 +20,8 @@ interface PaperSettingsPanelProps {
   duration: number;
   paperDate: Date | null;
   hasPaperDate: boolean;
+  variants: PaperVariant[];
+  currentPaperId: string;
   onDescriptionChange: (v: string) => void;
   onExamIdChange: (v: string) => void;
   onFetchChildren: (parentId: string) => Promise<any[]>;
@@ -26,6 +31,10 @@ interface PaperSettingsPanelProps {
   onDurationChange: (v: number) => void;
   onPaperDateChange: (v: Date | null) => void;
   onHasPaperDateChange: (v: boolean) => void;
+  onCreateVariant: (language: string) => Promise<void>;
+  onSwitchVariant: (variantId: string) => void;
+  onRenameVariant: (variantId: string, title: string) => Promise<void>;
+  onDeleteVariant: (variantId: string) => Promise<void>;
 }
 
 export default function PaperSettingsPanel({
@@ -39,6 +48,8 @@ export default function PaperSettingsPanel({
   duration,
   paperDate,
   hasPaperDate,
+  variants,
+  currentPaperId,
   onDescriptionChange,
   onExamIdChange,
   onFetchChildren,
@@ -48,12 +59,60 @@ export default function PaperSettingsPanel({
   onDurationChange,
   onPaperDateChange,
   onHasPaperDateChange,
+  onCreateVariant,
+  onSwitchVariant,
+  onRenameVariant,
+  onDeleteVariant,
 }: PaperSettingsPanelProps) {
   const treeItems: TreeItem[] = exams.map((exam) => ({
     id: exam.id,
     name: exam.name,
     hasChildren: exam._count?.children > 0,
   }));
+
+  const [showVariantPicker, setShowVariantPicker] = useState(false);
+  const [creatingVariant, setCreatingVariant] = useState(false);
+  const [selectedVariantLang, setSelectedVariantLang] = useState('');
+  const [editingVariantId, setEditingVariantId] = useState<string | null>(null);
+  const [editingVariantTitle, setEditingVariantTitle] = useState('');
+  const editInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCreateVariant = async () => {
+    if (!selectedVariantLang) return;
+    setCreatingVariant(true);
+    try {
+      await onCreateVariant(selectedVariantLang);
+    } catch {
+      toast.error('Failed to create variant');
+    } finally {
+      setCreatingVariant(false);
+      setShowVariantPicker(false);
+    }
+  };
+
+  const startEditVariant = (v: PaperVariant) => {
+    setEditingVariantId(v.id);
+    setEditingVariantTitle(v.variantName ?? '');
+    setTimeout(() => editInputRef.current?.select(), 0);
+  };
+
+  const saveEditVariant = async () => {
+    if (!editingVariantId) return;
+    const trimmed = editingVariantTitle.trim();
+    if (!trimmed) {
+      setEditingVariantId(null);
+      return;
+    }
+    try {
+      await onRenameVariant(editingVariantId, trimmed);
+    } catch {
+      toast.error('Failed to rename variant');
+    } finally {
+      setEditingVariantId(null);
+    }
+  };
+
+  const cancelEditVariant = () => setEditingVariantId(null);
 
   return (
     <div className="p-6 space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
@@ -70,7 +129,6 @@ export default function PaperSettingsPanel({
             <label className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/40 ml-1">
               Paper Description
             </label>
-
             <textarea
               value={description}
               onChange={(e) => onDescriptionChange(e.target.value)}
@@ -259,6 +317,158 @@ export default function PaperSettingsPanel({
             />
           </button>
         </div>
+      </section>
+
+      {/* Language Variants */}
+      <section className="space-y-3 pt-4 border-t border-outline-variant/5">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-1 h-4 bg-primary/30 rounded-full" />
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/70">
+            Variants
+          </h3>
+        </div>
+
+        <div className="space-y-2">
+          {variants.map((v) => {
+            const isCurrent = v.id === currentPaperId;
+            const isEditing = editingVariantId === v.id;
+            return (
+              <div
+                key={v.id}
+                className={`w-full flex items-center gap-2 px-4 py-3 rounded-xl border transition-all ${
+                  isCurrent
+                    ? 'border-primary/30 bg-primary/5'
+                    : 'border-outline-variant/10 bg-surface-container-lowest'
+                }`}
+              >
+                <Globe
+                  size={14}
+                  className={`shrink-0 ${isCurrent ? 'text-primary' : 'text-on-surface-variant/40'}`}
+                />
+
+                {isEditing ? (
+                  <input
+                    ref={editInputRef}
+                    value={editingVariantTitle}
+                    onChange={(e) => setEditingVariantTitle(e.target.value)}
+                    onBlur={saveEditVariant}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') saveEditVariant();
+                      if (e.key === 'Escape') cancelEditVariant();
+                    }}
+                    className="flex-1 min-w-0 bg-transparent text-xs font-black text-on-surface border-b border-primary/40 focus:outline-none focus:border-primary"
+                    autoFocus
+                  />
+                ) : (
+                  <button
+                    onClick={() => !isCurrent && onSwitchVariant(v.id)}
+                    disabled={isCurrent}
+                    className={`flex-1 min-w-0 text-left text-xs font-black truncate ${
+                      isCurrent
+                        ? 'text-primary cursor-default'
+                        : 'text-on-surface hover:text-primary cursor-pointer'
+                    }`}
+                  >
+                    {v.variantName || v.title}
+                  </button>
+                )}
+
+                {!isEditing && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      startEditVariant(v);
+                    }}
+                    className="shrink-0 p-1 rounded-lg text-on-surface-variant/30 hover:text-primary hover:bg-primary/10 transition-all"
+                    title="Rename"
+                  >
+                    <Pencil size={12} />
+                  </button>
+                )}
+
+                {!isEditing && !v.isDefault && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (
+                        window.confirm(
+                          `Delete variant "${v.variantName || v.title}"? This cannot be undone.`
+                        )
+                      ) {
+                        onDeleteVariant(v.id);
+                      }
+                    }}
+                    className="shrink-0 p-1 rounded-lg text-on-surface-variant/30 hover:text-red-500 hover:bg-red-500/10 transition-all"
+                    title="Delete variant"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                )}
+
+                {!isEditing &&
+                  (v.isDefault ? (
+                    <span className="shrink-0 text-[9px] font-black uppercase tracking-widest text-on-surface-variant/30">
+                      Default
+                    </span>
+                  ) : isCurrent ? (
+                    <span className="shrink-0 text-[9px] font-black uppercase tracking-widest text-primary/60">
+                      Current
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => onSwitchVariant(v.id)}
+                      className="shrink-0 text-[9px] font-black uppercase tracking-widest text-on-surface-variant/30 hover:text-primary transition-colors"
+                    >
+                      Open →
+                    </button>
+                  ))}
+              </div>
+            );
+          })}
+        </div>
+
+        {showVariantPicker ? (
+          <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+            <input
+              type="text"
+              value={selectedVariantLang}
+              onChange={(e) => setSelectedVariantLang(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && selectedVariantLang.trim()) handleCreateVariant();
+                if (e.key === 'Escape') setShowVariantPicker(false);
+              }}
+              placeholder="e.g. Hindi, Gujarati..."
+              autoFocus
+              className="w-full bg-surface-container-lowest border border-outline-variant/10 rounded-xl px-4 py-3 text-sm text-on-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-on-surface-variant/30"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleCreateVariant}
+                disabled={creatingVariant || !selectedVariantLang.trim()}
+                className="flex-1 py-2.5 rounded-xl bg-primary text-white text-[11px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {creatingVariant ? 'Creating...' : 'Create'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowVariantPicker(false);
+                  setSelectedVariantLang('');
+                }}
+                className="px-4 py-2.5 rounded-xl border border-outline-variant/20 text-on-surface-variant/60 text-[11px] font-black uppercase tracking-widest hover:bg-surface-container transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowVariantPicker(true)}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-outline-variant/20 text-on-surface-variant/40 hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-all text-[11px] font-black uppercase tracking-widest"
+          >
+            <Plus size={13} strokeWidth={3} />
+            Add Variant
+          </button>
+        )}
       </section>
 
       <div className="pt-4" />

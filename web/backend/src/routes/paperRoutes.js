@@ -49,6 +49,9 @@ router.get(
   questionController.index
 );
 
+router.get('/:id/variants', validateRequest(paperIdParamsSchema), paperController.variants);
+router.post('/:id/variants', validateRequest(paperIdParamsSchema), paperController.createVariant);
+
 router.post('/', validateRequest(createPaperSchema), paperController.store);
 router.patch('/:id', validateRequest(updatePaperSchema), paperController.update);
 router.patch('/:id/publish', validateRequest(paperIdParamsSchema), paperController.publish);

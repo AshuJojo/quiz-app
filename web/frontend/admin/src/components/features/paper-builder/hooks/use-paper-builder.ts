@@ -650,8 +650,8 @@ export function usePaperBuilder(
     });
   }, []);
 
-  const handleSave = useCallback(async () => {
-    if (!isDirty || isSaving) return;
+  const handleSave = useCallback(async (): Promise<boolean> => {
+    if (!isDirty || isSaving) return true;
 
     // ── Validate before saving ───────────────────────────────────────────────
     const allQsForValidation = localSections.flatMap((s) => s.questions || []);
@@ -680,7 +680,7 @@ export function usePaperBuilder(
         setQuestionNegativeMarks(firstErrorQ.negativeMarks ?? null);
       }
       toast.error('Some questions or options are empty — highlighted in red.');
-      return;
+      return false;
     }
     setValidationErrors(new Set());
 
@@ -852,9 +852,11 @@ export function usePaperBuilder(
       queryClient.invalidateQueries({ queryKey: ['paper', paperId] });
       queryClient.invalidateQueries({ queryKey: ['paper-sections', paperId] });
       queryClient.invalidateQueries({ queryKey: ['paper-questions', paperId] });
+      return true;
     } catch (error) {
       console.error('Failed to save paper:', error);
       toast.error('Failed to save paper changes');
+      return false;
     } finally {
       setIsSaving(false);
     }

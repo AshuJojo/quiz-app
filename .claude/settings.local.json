@@ -7,7 +7,10 @@
       "Bash(rm components/shared/hierarchical-select/hierarchical-select.tsx components/shared/hierarchical-select/hierarchical-option.tsx)",
       "Bash(rm components/shared/editor.tsx)",
       "Bash(pnpm dlx prisma *)",
-      "Bash(xargs grep *)"
+      "Bash(xargs grep *)",
+      "Bash(pnpm prisma *)",
+      "Bash(pnpm tsc *)",
+      "PowerShell(Set-Location \"d:\\\\Ashutosh Sharma\\\\Project\\\\quiz-app\\\\web\\\\backend\"; $env:PRISMA_FORCE_MIGRATIONS = \"1\"; pnpm prisma db push --accept-data-loss 2>&1)"
     ]
   }
 }
