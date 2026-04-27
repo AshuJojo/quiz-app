@@ -1,7 +1,6 @@
 'use client';
 
-import { ArchiveRestore, Rocket } from 'lucide-react';
-import { X } from 'lucide-react';
+import { ArchiveRestore, FileJson, Rocket, X } from 'lucide-react';
 
 interface BuilderHeaderProps {
   paperTitle: string;
@@ -12,6 +11,7 @@ interface BuilderHeaderProps {
   onSave: () => void;
   onPublish: () => void;
   onMoveToDraft: () => void;
+  onImport: () => void;
   onBack: () => void;
 }
 
@@ -24,6 +24,7 @@ export default function BuilderHeader({
   onSave,
   onPublish,
   onMoveToDraft,
+  onImport,
   onBack,
 }: BuilderHeaderProps) {
   const canSave = isDirty && !isSaving;
@@ -64,6 +65,16 @@ export default function BuilderHeader({
       <div className="flex-1" />
 
       <div className="flex items-center gap-3">
+        {/* 0. Import JSON */}
+        <button
+          onClick={onImport}
+          disabled={isSaving}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-outline-variant/20 text-on-surface-variant/60 text-xs font-black uppercase tracking-widest hover:bg-surface-container hover:text-on-background transition-all select-none disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <FileJson size={14} strokeWidth={2.5} />
+          Import JSON
+        </button>
+
         {/* 1. Save Progress — enabled whenever there are unsaved changes */}
         <button
           onClick={onSave}

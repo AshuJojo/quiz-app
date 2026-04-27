@@ -71,6 +71,10 @@ export function usePaperBuilder(
   const [removedSectionIds, setRemovedSectionIds] = useState<Set<string>>(new Set());
   const [renamedSections, setRenamedSections] = useState<Map<string, string>>(new Map());
   const [deletedQuestionIds, setDeletedQuestionIds] = useState<Set<string>>(new Set());
+  // Sections imported from JSON that don't exist in the exam yet — created on save
+  const [draftSections, setDraftSections] = useState<
+    Array<{ tempId: string; title: string; examId: string }>
+  >([]);
 
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [draggedQuestionId, setDraggedQuestionId] = useState<string | null>(null);
@@ -523,6 +527,116 @@ export function usePaperBuilder(
     setIsDirty(true);
   }, []);
 
+  // Fully local — no API calls during import. New sections get temp IDs and are created on save.
+  const handleImportJson = useCallback(
+    async (jsonData: any): Promise<{ sections: number; questions: number }> => {
+      const toContent = (v: any): any => {
+        if (!v) return { blocks: [] };
+        if (typeof v === 'string') return { blocks: [{ type: 'paragraph', data: { text: v } }] };
+        if (Array.isArray(v?.blocks)) return v;
+        return { blocks: [] };
+      };
+
+      // Apply optional paper-level settings
+      if (typeof jsonData.description === 'string') setPaperDescription(jsonData.description);
+      if (typeof jsonData.positiveMarks === 'number')
+        setDefaultPositiveMarks(jsonData.positiveMarks);
+      if (typeof jsonData.negativeMarks === 'number')
+        setDefaultNegativeMarks(jsonData.negativeMarks);
+      if (typeof jsonData.duration === 'number') setPaperDuration(jsonData.duration);
+      if (typeof jsonData.hasSections === 'boolean') setHasSections(jsonData.hasSections);
+
+      type Row = {
+        section: Section;
+        questions: Question[];
+        addToExisting: boolean;
+        isDraft: boolean;
+      };
+      const rows: Row[] = [];
+      const newDrafts: Array<{ tempId: string; title: string; examId: string }> = [];
+
+      for (const sData of jsonData.sections as any[]) {
+        const title = String(sData.title || 'Imported Section').trim();
+
+        // 1. Already in this paper?
+        let section: Section | undefined = localSections.find(
+          (s) => !s.isDefault && s.title.toLowerCase() === title.toLowerCase()
+        );
+        let addToExisting = false;
+        let isDraft = false;
+
+        if (!section) {
+          // 2. Exists in exam but not yet added to this paper?
+          section = examSections?.find((s) => s.title.toLowerCase() === title.toLowerCase());
+          if (section) {
+            addToExisting = !localSections.some((s) => s.id === section!.id);
+          } else {
+            // 3. Doesn't exist anywhere — create a local draft with a temp ID
+            const tempId = `temp-${generateId()}`;
+            section = {
+              id: tempId,
+              title,
+              examId: selectedExamId || null,
+              questions: [],
+              isDefault: false,
+            };
+            newDrafts.push({ tempId, title, examId: selectedExamId || '' });
+            isDraft = true;
+          }
+        }
+
+        const questions: Question[] = (sData.questions || []).map((qData: any, i: number) => ({
+          id: `temp-${generateId()}`,
+          sectionId: section!.id,
+          paperId,
+          question: toContent(qData.question ?? qData.text),
+          options: (qData.options || []).map((opt: any) => ({
+            content: toContent(typeof opt === 'object' && opt?.content ? opt.content : opt),
+          })),
+          correctOptionIndex:
+            typeof qData.correctOptionIndex === 'number' ? qData.correctOptionIndex : 0,
+          explanation: qData.explanation ?? null,
+          positiveMarks: qData.positiveMarks ?? null,
+          negativeMarks: qData.negativeMarks ?? null,
+          order: i,
+          type: 'SINGLE_CHOICE',
+        }));
+
+        rows.push({ section, questions, addToExisting, isDraft });
+      }
+
+      setLocalSections((prev) => {
+        const next = [...prev];
+        for (const { section, questions } of rows) {
+          const idx = next.findIndex((s) => s.id === section.id);
+          if (idx >= 0) {
+            next[idx] = { ...next[idx], questions: [...(next[idx].questions || []), ...questions] };
+          } else {
+            next.push({ ...section, questions, isDefault: false });
+          }
+        }
+        return next;
+      });
+
+      setAddedSectionIds((prev) => {
+        const next = new Set(prev);
+        for (const { section, addToExisting } of rows) {
+          if (addToExisting) next.add(section.id);
+        }
+        return next;
+      });
+
+      if (newDrafts.length > 0) {
+        setDraftSections((prev) => [...prev, ...newDrafts]);
+      }
+
+      setIsDirty(true);
+      const totalQ = rows.reduce((acc, { questions }) => acc + questions.length, 0);
+      return { sections: rows.length, questions: totalQ };
+    },
+    [localSections, examSections, selectedExamId, paperId]
+  );
+
   const handleAddOption = useCallback(() => {
     setOptions((prev) => [...prev, { content: { blocks: [] } }]);
   }, []);
@@ -627,7 +741,34 @@ export function usePaperBuilder(
       // 1. Paper
       await paperService.updatePaper(paperId, paperUpdate);
 
-      // 2a. Remove sections from paper
+      // 2a. Create draft sections (from JSON import) in the exam, map temp → real IDs
+      const tempSectionIdMap = new Map<string, string>();
+      if (draftSections.length > 0) {
+        const toCreate = draftSections
+          .filter((s) => s.examId)
+          .map((s) => ({ examId: s.examId, title: s.title }));
+        if (toCreate.length > 0) {
+          const result = await sectionService.createSections(toCreate);
+          const createdSecs: Array<{ id: string }> = result.data ?? [];
+          draftSections
+            .filter((s) => s.examId)
+            .forEach((s, idx) => {
+              if (createdSecs[idx]) tempSectionIdMap.set(s.tempId, createdSecs[idx].id);
+            });
+        }
+        // Add newly created sections to paper
+        const newRealIds = Array.from(tempSectionIdMap.values());
+        if (newRealIds.length > 0) {
+          await paperSectionService.addSectionsToPaper(paperId, newRealIds);
+        }
+        if (tempSectionIdMap.size > 0 && selectedExamId) {
+          queryClient.invalidateQueries({ queryKey: ['exam-sections', selectedExamId] });
+        }
+      }
+
+      const resolveSecId = (id: string) => tempSectionIdMap.get(id) ?? id;
+
+      // 2b. Remove sections from paper
       if (removedSectionIds.size > 0) {
         await Promise.all(
           Array.from(removedSectionIds).map((sId) =>
@@ -636,39 +777,51 @@ export function usePaperBuilder(
         );
       }
 
-      // 2b. Add new sections to paper
+      // 2c. Add existing exam sections to paper
       if (addedSectionIds.size > 0) {
         await paperSectionService.addSectionsToPaper(paperId, Array.from(addedSectionIds));
       }
 
-      // 2c. Reorder non-default sections
-      const sectionOrderUpdates = visibleSections.map((s, idx) => ({
-        sectionId: s.id,
-        order: idx + 1, // default section keeps order 0
-      }));
+      // 2d. Reorder non-default sections (resolve any temp IDs)
+      const sectionOrderUpdates = visibleSections
+        .filter((s) => !s.id.startsWith('temp-') || tempSectionIdMap.has(s.id))
+        .map((s, idx) => ({ sectionId: resolveSecId(s.id), order: idx + 1 }));
       if (sectionOrderUpdates.length > 0) {
         await paperSectionService.reorderPaperSections(paperId, sectionOrderUpdates);
       }
 
-      // 2d. Update renamed section titles (exam-level)
+      // 2e. Update renamed section titles (exam-level)
       if (renamedSections.size > 0) {
         const titleUpdates = Array.from(renamedSections.entries()).map(([id, title]) => ({
-          id,
+          id: resolveSecId(id),
           title,
         }));
         await sectionService.updateSections(titleUpdates);
       }
 
-      // 3. Questions — all section IDs are real UUIDs
+      // 3. Questions — resolve any temp section IDs before sending to backend
+      const resolvedNewQuestions = newQuestions.map((q) => ({
+        ...q,
+        sectionId: resolveSecId(q.sectionId),
+      }));
+      const resolvedQuestionUpdates = questionUpdates.map((q) => ({
+        ...q,
+        sectionId: resolveSecId(q.sectionId),
+      }));
+
       const [, createdQuestionsResult] = await Promise.all([
-        questionUpdates.length > 0 ? questionService.updateQuestions(questionUpdates) : null,
-        newQuestions.length > 0 ? questionService.createQuestions(newQuestions) : null,
+        resolvedQuestionUpdates.length > 0
+          ? questionService.updateQuestions(resolvedQuestionUpdates)
+          : null,
+        resolvedNewQuestions.length > 0
+          ? questionService.createQuestions(resolvedNewQuestions)
+          : null,
         deletedQuestionIds.size > 0
           ? questionService.deleteQuestions(Array.from(deletedQuestionIds))
           : null,
       ]);
 
-      // Replace temp question IDs with real IDs
+      // Replace temp question IDs AND temp section IDs with real IDs
       const questionIdMap = new Map<string, string>();
       const createdQs: Array<{ id: string }> = (createdQuestionsResult as any)?.data ?? [];
       tempQuestions.forEach((q, idx) => {
@@ -678,10 +831,12 @@ export function usePaperBuilder(
       setLocalSections((prev) =>
         prev.map((section) => ({
           ...section,
+          id: resolveSecId(section.id),
           questions:
             section.questions?.map((q) => ({
               ...q,
               id: questionIdMap.get(q.id) ?? q.id,
+              sectionId: resolveSecId(q.sectionId),
             })) ?? [],
         }))
       );
@@ -693,6 +848,7 @@ export function usePaperBuilder(
       setRemovedSectionIds(new Set());
       setRenamedSections(new Map());
       setDeletedQuestionIds(new Set());
+      setDraftSections([]);
       queryClient.invalidateQueries({ queryKey: ['paper', paperId] });
       queryClient.invalidateQueries({ queryKey: ['paper-sections', paperId] });
       queryClient.invalidateQueries({ queryKey: ['paper-questions', paperId] });
@@ -711,6 +867,7 @@ export function usePaperBuilder(
     removedSectionIds,
     renamedSections,
     deletedQuestionIds,
+    draftSections,
     paperId,
     queryClient,
     paperDescription,
@@ -821,6 +978,7 @@ export function usePaperBuilder(
     handleOptionContentChange,
     handleAddSection,
     handleCreateSection,
+    handleImportJson,
     handleDeleteSection,
     handleAddQuestion,
     handleDeleteQuestion,

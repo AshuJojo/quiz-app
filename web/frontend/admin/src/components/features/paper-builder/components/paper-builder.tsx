@@ -11,6 +11,7 @@ import { LayoutGrid, Settings2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import BuilderHeader from './builder-header';
+import ImportJsonModal from './import-json-modal';
 import PaperNavigator from './paper-navigator';
 import PaperSettingsPanel from './paper-settings-panel';
 import QuestionWorkspace from './question-workspace';
@@ -23,6 +24,7 @@ interface PaperBuilderProps {
 export default function PaperBuilder({ id }: PaperBuilderProps) {
   const router = useRouter();
   const [sidebarTab, setSidebarTab] = useState<'quiz' | 'paper'>('quiz');
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const { data: paperResult, isLoading: isPaperLoading } = useQuery({
     queryKey: ['paper', id],
@@ -80,8 +82,13 @@ export default function PaperBuilder({ id }: PaperBuilderProps) {
         onSave={b.handleSave}
         onPublish={b.handlePublish}
         onMoveToDraft={b.handleMoveToDraft}
+        onImport={() => setShowImportModal(true)}
         onBack={() => router.push('/papers')}
       />
+
+      {showImportModal && (
+        <ImportJsonModal onImport={b.handleImportJson} onClose={() => setShowImportModal(false)} />
+      )}
 
       <div className="flex-1 flex overflow-hidden">
         <PaperNavigator
