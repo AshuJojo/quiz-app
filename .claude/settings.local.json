@@ -10,7 +10,8 @@
       "Bash(xargs grep *)",
       "Bash(pnpm prisma *)",
       "Bash(pnpm tsc *)",
-      "PowerShell(Set-Location \"d:\\\\Ashutosh Sharma\\\\Project\\\\quiz-app\\\\web\\\\backend\"; $env:PRISMA_FORCE_MIGRATIONS = \"1\"; pnpm prisma db push --accept-data-loss 2>&1)"
+      "PowerShell(Set-Location \"d:\\\\Ashutosh Sharma\\\\Project\\\\quiz-app\\\\web\\\\backend\"; $env:PRISMA_FORCE_MIGRATIONS = \"1\"; pnpm prisma db push --accept-data-loss 2>&1)",
+      "Bash(pnpm eslint *)"
     ]
   }
 }

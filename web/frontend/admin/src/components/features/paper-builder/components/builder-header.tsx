@@ -1,6 +1,7 @@
 'use client';
 
 import { ArchiveRestore, FileJson, Rocket, X } from 'lucide-react';
+import { useRef, useState } from 'react';
 
 interface BuilderHeaderProps {
   paperTitle: string;
@@ -8,6 +9,7 @@ interface BuilderHeaderProps {
   isDirty: boolean;
   isSaving: boolean;
   isPublished: boolean;
+  onTitleChange: (title: string) => void;
   onSave: () => void;
   onPublish: () => void;
   onMoveToDraft: () => void;
@@ -21,6 +23,7 @@ export default function BuilderHeader({
   isDirty,
   isSaving,
   isPublished,
+  onTitleChange,
   onSave,
   onPublish,
   onMoveToDraft,
@@ -28,6 +31,27 @@ export default function BuilderHeader({
   onBack,
 }: BuilderHeaderProps) {
   const canSave = isDirty && !isSaving;
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleTitleClick = () => {
+    if (isLoading) return;
+    setIsEditingTitle(true);
+    setTimeout(() => inputRef.current?.select(), 0);
+  };
+
+  const handleTitleBlur = () => {
+    setIsEditingTitle(false);
+    if (!paperTitle.trim()) onTitleChange('Untitled Paper');
+  };
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === 'Escape') {
+      setIsEditingTitle(false);
+      if (!paperTitle.trim()) onTitleChange('Untitled Paper');
+      inputRef.current?.blur();
+    }
+  };
 
   return (
     <header className="h-16 flex items-center justify-between px-6 bg-surface-container-lowest/80 backdrop-blur-2xl border-b border-outline-variant/10 z-50">
@@ -39,9 +63,30 @@ export default function BuilderHeader({
           <X size={20} className="group-hover:rotate-90 transition-transform duration-300" />
         </button>
         <div className="w-[1px] h-6 bg-outline-variant/20" />
-        <h1 className="text-sm font-black text-on-background tracking-tight truncate max-w-[200px]">
-          {isLoading ? 'Loading...' : paperTitle || 'Untitled Paper'}
-        </h1>
+
+        {isLoading ? (
+          <span className="text-sm font-black text-on-surface-variant/40 tracking-tight">
+            Loading...
+          </span>
+        ) : isEditingTitle ? (
+          <input
+            ref={inputRef}
+            value={paperTitle}
+            onChange={(e) => onTitleChange(e.target.value)}
+            onBlur={handleTitleBlur}
+            onKeyDown={handleTitleKeyDown}
+            autoFocus
+            className="text-sm font-black text-on-background tracking-tight bg-transparent border-b border-primary/50 focus:outline-none focus:border-primary w-48 min-w-0"
+          />
+        ) : (
+          <button
+            onClick={handleTitleClick}
+            className="text-sm font-black text-on-background tracking-tight truncate max-w-[200px] hover:text-primary transition-colors text-left"
+            title="Click to edit title"
+          >
+            {paperTitle || 'Untitled Paper'}
+          </button>
+        )}
 
         {/* Status badge */}
         {!isLoading && (
@@ -75,7 +120,7 @@ export default function BuilderHeader({
           Import JSON
         </button>
 
-        {/* 1. Save Progress — enabled whenever there are unsaved changes */}
+        {/* 1. Save Progress */}
         <button
           onClick={onSave}
           disabled={!canSave}
@@ -95,7 +140,7 @@ export default function BuilderHeader({
           {isSaving ? 'Saving...' : 'Save Progress'}
         </button>
 
-        {/* 2. Move to Draft — always visible, disabled when paper is already a draft */}
+        {/* 2. Move to Draft */}
         <button
           onClick={onMoveToDraft}
           disabled={!isPublished || isSaving}
@@ -109,7 +154,7 @@ export default function BuilderHeader({
           Move to Draft
         </button>
 
-        {/* 3. Publish — always visible */}
+        {/* 3. Publish */}
         <button
           onClick={onPublish}
           disabled={isSaving}

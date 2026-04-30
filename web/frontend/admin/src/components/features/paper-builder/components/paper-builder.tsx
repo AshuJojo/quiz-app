@@ -111,11 +111,12 @@ export default function PaperBuilder({ id }: PaperBuilderProps) {
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden animate-in fade-in duration-700">
       <BuilderHeader
-        paperTitle={paper?.title ?? ''}
+        paperTitle={b.paperTitle}
         isLoading={isLoading}
         isDirty={b.isDirty}
         isSaving={b.isSaving}
         isPublished={b.isPublished}
+        onTitleChange={b.setPaperTitle}
         onSave={b.handleSave}
         onPublish={b.handlePublish}
         onMoveToDraft={b.handleMoveToDraft}

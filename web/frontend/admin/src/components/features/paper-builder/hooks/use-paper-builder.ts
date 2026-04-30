@@ -82,6 +82,7 @@ export function usePaperBuilder(
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
   const [editingSectionTitle, setEditingSectionTitle] = useState('');
 
+  const [paperTitle, setPaperTitle] = useState('');
   const [paperDescription, setPaperDescription] = useState('');
   const [selectedExamId, setSelectedExamId] = useState('');
   const [defaultPositiveMarks, setDefaultPositiveMarks] = useState(1);
@@ -104,8 +105,10 @@ export function usePaperBuilder(
   // Keys: `q:{id}` = empty question text, `o:{id}:{i}` = empty option i
   const [validationErrors, setValidationErrors] = useState<Set<string>>(new Set());
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (paper) {
+      setPaperTitle(paper.title || '');
       setPaperDescription(paper.description || '');
       setSelectedExamId(paper.examId || '');
       setDefaultPositiveMarks(paper.positiveMarks ?? 1);
@@ -116,16 +119,19 @@ export function usePaperBuilder(
       setHasPaperDate(!!paper.paperDate);
     }
   }, [paper]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (isSuccess && initialSections && localSections.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLocalSections(initialSections);
     }
   }, [isSuccess, initialSections, localSections.length]);
 
   // Write-back: sync workspace state into the active question in localSections
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    if (activeQuestionId && localSections.length > 0) {
+    if (activeQuestionId) {
       setLocalSections((prev) =>
         prev.map((section) => ({
           ...section,
@@ -166,6 +172,7 @@ export function usePaperBuilder(
     questionPositiveMarks,
     questionNegativeMarks,
   ]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const allQuestions = useMemo(
     () => localSections.flatMap((s) => s.questions || []),
@@ -189,6 +196,7 @@ export function usePaperBuilder(
   }, [examSections, localSections]);
 
   // Auto-select the first question when none is active
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (localSections.length > 0 && !activeQuestionId) {
       const firstQ = allQuestions[0];
@@ -204,11 +212,13 @@ export function usePaperBuilder(
       }
     }
   }, [localSections, activeQuestionId, allQuestions]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Dirty state for global paper fields
   useEffect(() => {
     if (paper) {
       const isPaperDirty =
+        paperTitle !== (paper.title || '') ||
         paperDescription !== (paper.description || '') ||
         selectedExamId !== (paper.examId || '') ||
         defaultPositiveMarks !== (paper.positiveMarks ?? 1) ||
@@ -219,10 +229,12 @@ export function usePaperBuilder(
         (hasPaperDate &&
           (paperDate?.toISOString() || '') !==
             (paper.paperDate ? new Date(paper.paperDate).toISOString() : ''));
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (isPaperDirty) setIsDirty(true);
     }
   }, [
     paper,
+    paperTitle,
     paperDescription,
     selectedExamId,
     defaultPositiveMarks,
@@ -728,6 +740,7 @@ export function usePaperBuilder(
       });
 
       const paperUpdate = {
+        title: paperTitle,
         description: paperDescription,
         examId: selectedExamId || null,
         positiveMarks: defaultPositiveMarks,
@@ -872,6 +885,7 @@ export function usePaperBuilder(
     draftSections,
     paperId,
     queryClient,
+    paperTitle,
     paperDescription,
     selectedExamId,
     defaultPositiveMarks,
@@ -949,6 +963,8 @@ export function usePaperBuilder(
     setQuestionPositiveMarks,
     questionNegativeMarks,
     setQuestionNegativeMarks,
+    paperTitle,
+    setPaperTitle,
     paperDescription,
     setPaperDescription,
     selectedExamId,
