@@ -4,8 +4,8 @@ import {
   HierarchicalSelect,
   TreeItem,
 } from '@/components/ui/hierarchical-select/hierarchical-select';
-import { PaperVariant } from '@/components/features/papers/types';
-import { Calendar, Globe, Layers, Pencil, Plus, Target, Trash2 } from 'lucide-react';
+import { PaperType, PaperVariant } from '@/components/features/papers/types';
+import { Calendar, Globe, Layers, Pencil, Plus, Tag, Target, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -20,6 +20,8 @@ interface PaperSettingsPanelProps {
   duration: number;
   paperDate: Date | null;
   hasPaperDate: boolean;
+  paperTypeId: string | null;
+  paperTypes: PaperType[];
   variants: PaperVariant[];
   currentPaperId: string;
   onDescriptionChange: (v: string) => void;
@@ -31,6 +33,9 @@ interface PaperSettingsPanelProps {
   onDurationChange: (v: number) => void;
   onPaperDateChange: (v: Date | null) => void;
   onHasPaperDateChange: (v: boolean) => void;
+  onPaperTypeChange: (id: string | null) => void;
+  onCreatePaperType: (name: string) => Promise<void>;
+  onDeletePaperType: (id: string) => Promise<void>;
   onCreateVariant: (language: string) => Promise<void>;
   onSwitchVariant: (variantId: string) => void;
   onRenameVariant: (variantId: string, title: string) => Promise<void>;
@@ -48,6 +53,8 @@ export default function PaperSettingsPanel({
   duration,
   paperDate,
   hasPaperDate,
+  paperTypeId,
+  paperTypes,
   variants,
   currentPaperId,
   onDescriptionChange,
@@ -59,6 +66,9 @@ export default function PaperSettingsPanel({
   onDurationChange,
   onPaperDateChange,
   onHasPaperDateChange,
+  onPaperTypeChange,
+  onCreatePaperType,
+  onDeletePaperType,
   onCreateVariant,
   onSwitchVariant,
   onRenameVariant,
@@ -69,6 +79,25 @@ export default function PaperSettingsPanel({
     name: exam.name,
     hasChildren: exam._count?.children > 0,
   }));
+
+  const [newPaperTypeName, setNewPaperTypeName] = useState('');
+  const [showPaperTypeInput, setShowPaperTypeInput] = useState(false);
+  const [creatingPaperType, setCreatingPaperType] = useState(false);
+
+  const handleCreatePaperTypeLocal = async () => {
+    const name = newPaperTypeName.trim();
+    if (!name) return;
+    setCreatingPaperType(true);
+    try {
+      await onCreatePaperType(name);
+      setNewPaperTypeName('');
+      setShowPaperTypeInput(false);
+    } catch {
+      toast.error('Failed to create paper type');
+    } finally {
+      setCreatingPaperType(false);
+    }
+  };
 
   const [showVariantPicker, setShowVariantPicker] = useState(false);
   const [creatingVariant, setCreatingVariant] = useState(false);
@@ -158,6 +187,100 @@ export default function PaperSettingsPanel({
               />
             </div>
           </div>
+
+          {/* Paper Type */}
+          {examId && (
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/40 ml-1 flex items-center gap-1">
+                Paper Type
+                <span className="text-red-500">*</span>
+              </label>
+              <div className="relative group">
+                <div
+                  className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors pointer-events-none ${!paperTypeId ? 'text-red-400' : 'text-on-surface-variant/30 group-focus-within:text-primary'}`}
+                >
+                  <Tag size={16} />
+                </div>
+                <select
+                  value={paperTypeId ?? ''}
+                  onChange={(e) => onPaperTypeChange(e.target.value || null)}
+                  className={`w-full appearance-none bg-surface-container-lowest rounded-2xl p-3.5 pl-12 text-sm text-on-background focus:outline-none focus:ring-2 transition-all border ${
+                    !paperTypeId
+                      ? 'border-red-400/50 focus:ring-red-400/20 focus:border-red-400'
+                      : 'border-outline-variant/10 focus:ring-primary/20'
+                  }`}
+                >
+                  <option value="">— Select paper type —</option>
+                  {paperTypes.map((pt) => (
+                    <option key={pt.id} value={pt.id}>
+                      {pt.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Inline type management */}
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {paperTypes.map((pt) => (
+                  <span
+                    key={pt.id}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-surface-container text-[10px] font-black text-on-surface-variant/60"
+                  >
+                    {pt.name}
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`Delete paper type "${pt.name}"?`)) {
+                          onDeletePaperType(pt.id);
+                        }
+                      }}
+                      className="hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 size={10} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+
+              {showPaperTypeInput ? (
+                <div className="flex gap-2 mt-1">
+                  <input
+                    type="text"
+                    value={newPaperTypeName}
+                    onChange={(e) => setNewPaperTypeName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && newPaperTypeName.trim())
+                        handleCreatePaperTypeLocal();
+                      if (e.key === 'Escape') setShowPaperTypeInput(false);
+                    }}
+                    placeholder="e.g. Previous Year Paper"
+                    autoFocus
+                    className="flex-1 min-w-0 bg-surface-container-lowest border border-outline-variant/10 rounded-xl px-3 py-2 text-sm text-on-background focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-on-surface-variant/30"
+                  />
+                  <button
+                    onClick={handleCreatePaperTypeLocal}
+                    disabled={creatingPaperType || !newPaperTypeName.trim()}
+                    className="px-3 py-2 rounded-xl bg-primary text-white text-[11px] font-black disabled:opacity-50"
+                  >
+                    {creatingPaperType ? '...' : 'Add'}
+                  </button>
+                  <button
+                    onClick={() => setShowPaperTypeInput(false)}
+                    className="px-3 py-2 rounded-xl border border-outline-variant/20 text-on-surface-variant/60 text-[11px] font-black"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowPaperTypeInput(true)}
+                  className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-on-surface-variant/40 hover:text-primary transition-colors mt-1"
+                >
+                  <Plus size={11} strokeWidth={3} />
+                  New Type
+                </button>
+              )}
+            </div>
+          )}
 
           <div className="space-y-4 pt-4 border-t border-outline-variant/5">
             <div className="flex items-center justify-between p-4 rounded-2xl bg-surface-container-low transition-all">

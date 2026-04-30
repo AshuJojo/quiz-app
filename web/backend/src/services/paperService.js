@@ -9,9 +9,6 @@ exports.getPapers = async (examId, search, page = 1, limit = 10, variant) => {
   if (examId) where.examId = examId;
   if (variant === '0') where.parentPaperId = null;
 
-  console.log('where', where);
-  console.log('variant', variant);
-
   const [total, papers] = await Promise.all([
     prisma.paper.count({ where }),
     prisma.paper.findMany({
@@ -86,6 +83,7 @@ exports.updatePaper = async (id, data) => {
     title,
     description,
     variantName,
+    paperTypeId,
     examId,
     positiveMarks,
     negativeMarks,
@@ -97,6 +95,7 @@ exports.updatePaper = async (id, data) => {
   if (title !== undefined) safeData.title = title;
   if (description !== undefined) safeData.description = description;
   if (variantName !== undefined) safeData.variantName = variantName;
+  if (paperTypeId !== undefined) safeData.paperTypeId = paperTypeId || null;
   if (positiveMarks !== undefined) safeData.positiveMarks = positiveMarks;
   if (negativeMarks !== undefined) safeData.negativeMarks = negativeMarks;
   if (hasSections !== undefined) safeData.hasSections = hasSections;
@@ -117,7 +116,25 @@ exports.updatePaper = async (id, data) => {
     }
   }
 
-  return prisma.paper.update({ where: { id }, data: safeData });
+  const updated = await prisma.paper.update({ where: { id }, data: safeData });
+
+  // Sync examId and paperTypeId across the entire variant family
+  const familySync = {};
+  if (safeData.examId !== undefined) familySync.examId = safeData.examId;
+  if (safeData.paperTypeId !== undefined) familySync.paperTypeId = safeData.paperTypeId;
+
+  if (Object.keys(familySync).length > 0) {
+    const rootId = targetPaper.parentPaperId ?? id;
+    await prisma.paper.updateMany({
+      where: {
+        id: { not: id },
+        OR: [{ id: rootId }, { parentPaperId: rootId }],
+      },
+      data: familySync,
+    });
+  }
+
+  return updated;
 };
 
 // Dedicated publish/unpublish — the ONLY way isPublished can change.

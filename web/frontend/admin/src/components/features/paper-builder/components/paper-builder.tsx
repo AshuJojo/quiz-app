@@ -2,10 +2,21 @@
 
 import { paperService } from '@/components/features/papers/services';
 import { examService } from '@/components/features/exams/services';
-import { sectionService, questionService, paperService as builderPaperService } from '../services';
+import {
+  sectionService,
+  questionService,
+  paperService as builderPaperService,
+  paperTypeService,
+} from '../services';
 
 import { usePaperBuilder } from '@/components/features/paper-builder/hooks/use-paper-builder';
-import { Paper, PaperVariant, Section, Question } from '@/components/features/papers/types';
+import {
+  Paper,
+  PaperType,
+  PaperVariant,
+  Section,
+  Question,
+} from '@/components/features/papers/types';
 import { useQuery } from '@tanstack/react-query';
 import { LayoutGrid, Settings2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -78,6 +89,25 @@ export default function PaperBuilder({ id }: PaperBuilderProps) {
     queryFn: () => (b.selectedExamId ? examService.getExam(b.selectedExamId) : null),
     enabled: !!b.selectedExamId,
   });
+
+  // Fetch paper types for the currently selected exam
+  const { data: paperTypesResult, refetch: refetchPaperTypes } = useQuery({
+    queryKey: ['paper-types', b.selectedExamId],
+    queryFn: () => paperTypeService.getByExamId(b.selectedExamId),
+    enabled: !!b.selectedExamId,
+  });
+  const paperTypes = (paperTypesResult?.data as PaperType[]) ?? [];
+
+  const handleCreatePaperType = async (name: string) => {
+    await paperTypeService.create(b.selectedExamId, name);
+    await refetchPaperTypes();
+  };
+
+  const handleDeletePaperType = async (paperTypeId: string) => {
+    await paperTypeService.delete(paperTypeId);
+    if (b.paperTypeId === paperTypeId) b.setPaperTypeId(null);
+    await refetchPaperTypes();
+  };
 
   const handleCreateVariant = async (language: string) => {
     const result = await builderPaperService.createVariant(id, { language });
@@ -253,6 +283,11 @@ export default function PaperBuilder({ id }: PaperBuilderProps) {
                 onDurationChange={b.setPaperDuration}
                 onPaperDateChange={b.setPaperDate}
                 onHasPaperDateChange={b.setHasPaperDate}
+                paperTypeId={b.paperTypeId}
+                paperTypes={paperTypes}
+                onPaperTypeChange={b.setPaperTypeId}
+                onCreatePaperType={handleCreatePaperType}
+                onDeletePaperType={handleDeletePaperType}
                 onCreateVariant={handleCreateVariant}
                 onRenameVariant={handleRenameVariant}
                 onDeleteVariant={handleDeleteVariant}

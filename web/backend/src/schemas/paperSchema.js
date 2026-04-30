@@ -31,6 +31,7 @@ exports.updatePaperSchema = z.object({
       title: z.string().min(2, { message: 'Title must be at least 2 characters' }).optional(),
       description: z.string().optional().nullable(),
       variantName: z.string().optional().nullable(),
+      paperTypeId: z.string().uuid().optional().nullable(),
       examId: z
         .union([z.string().uuid({ message: 'Invalid exam ID' }), z.literal(''), z.null()])
         .optional(),

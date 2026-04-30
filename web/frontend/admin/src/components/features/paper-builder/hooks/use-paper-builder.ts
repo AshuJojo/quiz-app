@@ -84,6 +84,7 @@ export function usePaperBuilder(
 
   const [paperTitle, setPaperTitle] = useState('');
   const [paperDescription, setPaperDescription] = useState('');
+  const [paperTypeId, setPaperTypeId] = useState<string | null>(null);
   const [selectedExamId, setSelectedExamId] = useState('');
   const [defaultPositiveMarks, setDefaultPositiveMarks] = useState(1);
   const [defaultNegativeMarks, setDefaultNegativeMarks] = useState(0);
@@ -110,6 +111,7 @@ export function usePaperBuilder(
     if (paper) {
       setPaperTitle(paper.title || '');
       setPaperDescription(paper.description || '');
+      setPaperTypeId(paper.paperTypeId ?? null);
       setSelectedExamId(paper.examId || '');
       setDefaultPositiveMarks(paper.positiveMarks ?? 1);
       setDefaultNegativeMarks(paper.negativeMarks ?? 0);
@@ -220,6 +222,7 @@ export function usePaperBuilder(
       const isPaperDirty =
         paperTitle !== (paper.title || '') ||
         paperDescription !== (paper.description || '') ||
+        paperTypeId !== (paper.paperTypeId ?? null) ||
         selectedExamId !== (paper.examId || '') ||
         defaultPositiveMarks !== (paper.positiveMarks ?? 1) ||
         defaultNegativeMarks !== (paper.negativeMarks ?? 0) ||
@@ -236,6 +239,7 @@ export function usePaperBuilder(
     paper,
     paperTitle,
     paperDescription,
+    paperTypeId,
     selectedExamId,
     defaultPositiveMarks,
     defaultNegativeMarks,
@@ -666,6 +670,11 @@ export function usePaperBuilder(
     if (!isDirty || isSaving) return true;
 
     // ── Validate before saving ───────────────────────────────────────────────
+    if (selectedExamId && !paperTypeId) {
+      toast.error('Paper type is required. Please select a paper type before saving.');
+      return false;
+    }
+
     const allQsForValidation = localSections.flatMap((s) => s.questions || []);
     const errors = new Set<string>();
     allQsForValidation.forEach((q) => {
@@ -742,6 +751,7 @@ export function usePaperBuilder(
       const paperUpdate = {
         title: paperTitle,
         description: paperDescription,
+        paperTypeId: paperTypeId || null,
         examId: selectedExamId || null,
         positiveMarks: defaultPositiveMarks,
         negativeMarks: defaultNegativeMarks,
@@ -887,6 +897,7 @@ export function usePaperBuilder(
     queryClient,
     paperTitle,
     paperDescription,
+    paperTypeId,
     selectedExamId,
     defaultPositiveMarks,
     defaultNegativeMarks,
@@ -967,6 +978,8 @@ export function usePaperBuilder(
     setPaperTitle,
     paperDescription,
     setPaperDescription,
+    paperTypeId,
+    setPaperTypeId,
     selectedExamId,
     setSelectedExamId,
     defaultPositiveMarks,
